@@ -1,0 +1,13 @@
+@page "/dashboard"
+@using MudBlazor
+@inject GitActDashNet.Services.AuthService AuthService
+
+<MudText Typo="Typo.h4">Dashboard</MudText>
+<MudText Typo="Typo.body1">Welcome to the GitHub Actions Dashboard. (UI implementation coming soon)</MudText>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.RequireAuthenticationAsync();
+    }
+}
