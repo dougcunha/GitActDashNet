@@ -1,0 +1,156 @@
+@page "/example-usage"
+@using GitActDashNet.Services
+@using GitActDashNet.Utils
+@using Octokit
+@inject GitHubService GitHubService
+@inject ILogger<ExampleUsage> Logger
+
+<h3>Example: Using GitHubService with OperationResult Pattern</h3>
+
+@if (isLoading)
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+else if (warningMessage is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        @warningMessage
+    </div>
+}
+
+@if (repositories.Count > 0)
+{
+    <div class="alert alert-success" role="alert">
+        Successfully loaded @repositories.Count repositories!
+    </div>
+
+    <ul class="list-group">
+        @foreach (var repo in repositories)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@repo.FullName</strong>
+                    <br />
+                    <small class="text-muted">@repo.Description</small>
+                </div>
+                <span class="badge bg-primary rounded-pill">
+                    @repo.StargazersCount ⭐
+                </span>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? warningMessage;
+    private List<Repository> repositories = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRepositoriesWithMonadPattern();
+    }
+
+    private async Task LoadRepositoriesWithMonadPattern()
+    {
+        isLoading = true;
+        errorMessage = null;
+        warningMessage = null;
+        repositories.Clear();
+
+        // Example 1: Basic usage with explicit handling
+        var result = await GitHubService.GetUserRepositoriesAsync();
+
+        if (result.IsFailure)
+        {
+            errorMessage = result.ErrorMessage;
+            Logger.LogError("Failed to load repositories: {Error}", result.ErrorMessage);
+        }
+        else if (result.IsWarning)
+        {
+            warningMessage = result.ErrorMessage;
+            repositories = result.Value.ToList();
+            Logger.LogWarning("Repositories loaded with warnings: {Warning}", result.ErrorMessage);
+        }
+        else
+        {
+            repositories = result.Value.ToList();
+            Logger.LogInformation("Successfully loaded {Count} repositories", repositories.Count);
+        }
+
+        // Example 2: Fluent usage with extension methods
+        await GitHubService.GetUserRepositoriesAsync()
+            .OnSuccess(repos => Logger.LogInformation("Found {Count} repositories", repos.Count))
+            .OnWarning(warning => Logger.LogWarning("Warning: {Warning}", warning))
+            .OnFailure(error => Logger.LogError("Error: {Error}", error));
+
+        // Example 3: Chaining operations with Map and Bind
+        var personalReposResult = await GitHubService.GetUserRepositoriesAsync()
+            .Map(repos => repos.Where(r => r.Owner.Type == AccountType.User).ToArray())
+            .BindAsync(async repos =>
+            {
+                // Simulate another operation that could fail
+                await Task.Delay(1); // Remove warning about async method
+                if (repos.Length == 0)
+                    return OperationResult<Repository[]>.Failure("No personal repositories found");
+
+                return OperationResult<Repository[]>.Success(repos);
+            });
+
+        if (personalReposResult.IsSuccess)
+        {
+            Logger.LogInformation("Found {Count} personal repositories", personalReposResult.Value.Length);
+        }
+
+        // Example 4: Safe value extraction with default
+        var repositoryCount = await GitHubService.GetUserRepositoriesAsync()
+            .Map(repos => repos.Count)
+            .ValueOrDefault(0); // Returns 0 if operation failed
+
+        Logger.LogInformation("Repository count (with default): {Count}", repositoryCount);
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadRepositoriesWithMonadPattern();
+    }
+}
+
+<div class="mt-3">
+    <button class="btn btn-primary" @onclick="RefreshData" disabled="@isLoading">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        }
+        Refresh
+    </button>
+</div>
+
+@* 
+This component demonstrates several patterns for using OperationResult:
+
+1. **Explicit handling**: Check IsFailure, IsWarning, IsSuccess explicitly
+2. **Fluent handling**: Use OnSuccess, OnWarning, OnFailure for side effects
+3. **Transformation**: Use Map to transform successful values
+4. **Chaining**: Use BindAsync to chain operations that can fail
+5. **Safe extraction**: Use ValueOrDefault to get values with fallbacks
+
+Benefits of this pattern:
+- No exceptions thrown for expected failures (like API rate limits)
+- Explicit handling of success, warning, and failure states
+- Composable operations that can be chained together
+- Better logging and error reporting
+- More predictable behavior in the UI
+*@

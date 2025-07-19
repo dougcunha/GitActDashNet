@@ -1,0 +1,10 @@
+<AuthorizeView>
+    <Authorized>
+        <form action="/logout" method="post">
+            <button type="submit" class="btn btn-link">Log out</button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a href="/login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
