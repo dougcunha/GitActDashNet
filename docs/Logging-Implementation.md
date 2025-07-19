@@ -1,26 +1,26 @@
-# Implementação de Logging com Serilog
+# Serilog Logging Implementation
 
-## Resumo das Mudanças
+## Summary of Changes
 
-Este documento descreve a implementação completa do sistema de logging estruturado usando Serilog no projeto GitActDash, fornecendo observabilidade abrangente para debugging, monitoramento e auditoria.
+This document describes the complete implementation of the structured logging system using Serilog in the GitActDash project, providing comprehensive observability for debugging, monitoring, and auditing.
 
-## Pacotes Instalados
+## Installed Packages
 
 ### 📦 **Serilog.AspNetCore** (v9.0.0)
-- Integração completa com ASP.NET Core
-- Suporte a DI e configuração
-- Substituição do logging padrão
+- Complete integration with ASP.NET Core
+- DI and configuration support
+- Default logging replacement
 
 ### 📦 **Serilog.Sinks.File** (v7.0.0)
-- Gravação de logs em arquivos
-- Rotação diária automática
-- Retenção configurável de arquivos
+- Log file writing
+- Automatic daily rotation
+- Configurable file retention
 
 ### 📦 **Serilog.Enrichers.Environment** (v3.0.1)
-- Enriquecimento com informações do ambiente
-- Nome da máquina e ambiente de execução
+- Environment information enrichment
+- Machine name and execution environment
 
-## Configuração Implementada
+## Implemented Configuration
 
 ### 🔧 **Program.cs**
 ```csharp
@@ -37,41 +37,41 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 ```
 
-### 📁 **Estrutura de Logs**
-- **Console**: Logs formatados para desenvolvimento
-- **Arquivo**: Logs estruturados com rotação diária
-- **Localização**: `logs/gitactdash-YYYY-MM-DD.log`
-- **Retenção**: 31 dias
-- **Formato**: Timestamp detalhado + Context + Propriedades
+### 📁 **Log Structure**
+- **Console**: Formatted logs for development
+- **File**: Structured logs with daily rotation
+- **Location**: `logs/gitactdash-YYYY-MM-DD.log`
+- **Retention**: 31 days
+- **Format**: Detailed timestamp + Context + Properties
 
-## Classes Implementadas
+## Implemented Classes
 
 ### 🛠️ **LoggingExtensions.cs**
 
-#### **Métodos de Contexto**
+#### **Context Methods**
 ```csharp
-// Operações do GitHub com contexto
+// GitHub operations with context
 using var _ = logger.ForGitHubOperation("GetRepositories", repository: "repo-name", organization: "org-name");
 
-// Operações de serviço
+// Service operations
 using var serviceContext = logger.ForServiceOperation(nameof(GitHubService), nameof(GetUserRepositoriesAsync));
 
-// Operações de componente
+// Component operations
 using var componentContext = logger.ForComponentOperation("FilterPanel", "LoadRepositories");
 ```
 
-#### **Temporização de Operações**
+#### **Operation Timing**
 ```csharp
 using var timer = logger.TimeOperation("GetUserRepositories");
-// Operação sendo medida
-// Ao final do using, o tempo é automaticamente logado
+// Operation being measured
+// At the end of using, time is automatically logged
 ```
 
-#### **Classes Auxiliares**
-- **CompositeDisposable**: Combina múltiplos contextos
-- **OperationTimer<T>**: Mede e loga tempo de execução automaticamente
+#### **Helper Classes**
+- **CompositeDisposable**: Combines multiple contexts
+- **OperationTimer<T>**: Measures and logs execution time automatically
 
-## Implementação nos Services
+## Service Implementation
 
 ### 🔍 **GitHubService**
 ```csharp
@@ -84,7 +84,7 @@ public async Task<OperationResult<IReadOnlyList<Repository>>> GetUserRepositorie
     
     try
     {
-        // Operação principal
+        // Main operation
         logger.LogDebug("Fetched {Count} personal repositories", userRepos.Count);
         logger.LogInformation("Successfully fetched {TotalCount} repositories ({UniqueCount} unique)", 
             allRepos.Count, distinctRepos.Length);
@@ -110,7 +110,7 @@ public async Task<OperationResult> SetItemAsync(string key, string value, Cancel
     
     try
     {
-        // Operação JavaScript
+        // JavaScript operation
         logger.LogDebug("Successfully set localStorage item with key: {Key}", key);
     }
     catch (JSException ex)
@@ -120,47 +120,47 @@ public async Task<OperationResult> SetItemAsync(string key, string value, Cancel
 }
 ```
 
-## Níveis de Log Implementados
+## Implemented Log Levels
 
 ### 📊 **Debug**
-- Informações detalhadas de fluxo
-- Contagens de itens processados
-- Estados internos de operações
+- Detailed flow information
+- Processed item counts
+- Internal operation states
 
 ### 📋 **Information**
-- Início e fim de operações principais
-- Resultados de sucesso com contadores
-- Tempo de execução de operações
+- Start and end of main operations
+- Success results with counters
+- Operation execution time
 
 ### ⚠️ **Warning**
-- Rate limits da API GitHub
-- Operações canceladas
-- Recursos inacessíveis mas não críticos
+- GitHub API rate limits
+- Cancelled operations
+- Inaccessible but non-critical resources
 
 ### ❌ **Error**
-- Exceções capturadas com contexto
-- Falhas de API com códigos de status
-- Erros JavaScript do lado cliente
+- Caught exceptions with context
+- API failures with status codes
+- Client-side JavaScript errors
 
 ### 💥 **Fatal**
-- Falhas críticas de inicialização
-- Terminação inesperada da aplicação
+- Critical initialization failures
+- Unexpected application termination
 
-## Contextos Estruturados
+## Structured Contexts
 
-### 🏷️ **Propriedades Automáticas**
-- **Environment**: Desenvolvimento/Produção
-- **MachineName**: Identificação do servidor
-- **SourceContext**: Nome da classe que originou o log
+### 🏷️ **Automatic Properties**
+- **Environment**: Development/Production
+- **MachineName**: Server identification
+- **SourceContext**: Name of the class that originated the log
 
-### 🎯 **Propriedades Customizadas**
-- **Service**: Nome do serviço (GitHubService, LocalStorageService)
-- **Operation**: Nome do método sendo executado
-- **Repository**: Nome do repositório GitHub (quando aplicável)
-- **Organization**: Nome da organização GitHub (quando aplicável)
-- **Component**: Nome do componente Blazor (quando aplicável)
+### 🎯 **Custom Properties**
+- **Service**: Service name (GitHubService, LocalStorageService)
+- **Operation**: Name of the method being executed
+- **Repository**: GitHub repository name (when applicable)
+- **Organization**: GitHub organization name (when applicable)
+- **Component**: Blazor component name (when applicable)
 
-## Configuração de Appsettings
+## Appsettings Configuration
 
 ### ⚙️ **appsettings.json**
 ```json
@@ -195,52 +195,52 @@ public async Task<OperationResult> SetItemAsync(string key, string value, Cancel
 }
 ```
 
-## Benefícios Implementados
+## Implemented Benefits
 
-### 🔍 **Debugging Aprimorado**
-- Contexto detalhado de cada operação
-- Rastreamento de chamadas GitHub API
-- Identificação rápida de problemas
+### 🔍 **Enhanced Debugging**
+- Detailed context for each operation
+- GitHub API call tracking
+- Quick problem identification
 
-### 📈 **Monitoramento de Performance**
-- Tempo de execução de operações
-- Identificação de gargalos
-- Métricas de uso da API
+### 📈 **Performance Monitoring**
+- Operation execution time
+- Bottleneck identification
+- API usage metrics
 
-### 🛡️ **Auditoria e Compliance**
-- Logs estruturados para análise
-- Retenção configurável
-- Não exposição de tokens sensíveis
+### 🛡️ **Auditing and Compliance**
+- Structured logs for analysis
+- Configurable retention
+- No sensitive token exposure
 
-### 🚀 **Produção Ready**
-- Rotação automática de logs
-- Configuração por ambiente
-- Formato estruturado para ferramentas de análise
+### 🚀 **Production Ready**
+- Automatic log rotation
+- Environment-based configuration
+- Structured format for analysis tools
 
-## Exemplos de Output
+## Output Examples
 
-### 💻 **Console (Desenvolvimento)**
+### 💻 **Console (Development)**
 ```
 [14:32:15 INF] Starting to fetch user repositories {"Service": "GitHubService", "Operation": "GetUserRepositoriesAsync"}
 [14:32:15 DBG] Fetched 12 personal repositories {"Service": "GitHubService", "Operation": "GetUserRepositoriesAsync"}
 [14:32:16 INF] Completed operation: GetUserRepositories in 834.2ms {"Service": "GitHubService", "Operation": "GetUserRepositoriesAsync"}
 ```
 
-### 📄 **Arquivo (Produção)**
+### 📄 **File (Production)**
 ```
 2025-07-19 14:32:15.123 -03:00 [INF] GitActDashNet.Services.GitHubService: Starting to fetch user repositories {"Service": "GitHubService", "Operation": "GetUserRepositoriesAsync", "EnvironmentName": "Production", "MachineName": "WEB01"}
 ```
 
-### ⚠️ **Aviso de Rate Limit**
+### ⚠️ **Rate Limit Warning**
 ```
 [14:33:20 WRN] GitHub API rate limit exceeded. Reset at: 07/19/2025 15:33:20 {"Service": "GitHubService", "Operation": "GetUserRepositoriesAsync", "ResetTime": "2025-07-19T15:33:20Z"}
 ```
 
-## Próximos Passos
+## Next Steps
 
-1. **Implementar logging nos componentes Blazor** quando criados
-2. **Adicionar métricas específicas** para operações críticas
-3. **Configurar alertas** baseados em logs de erro
-4. **Implementar correlation IDs** para rastreamento de requests
+1. **Implement logging in Blazor components** when created
+2. **Add specific metrics** for critical operations
+3. **Configure alerts** based on error logs
+4. **Implement correlation IDs** for request tracking
 
-Esta implementação fornece uma base sólida para observabilidade, facilitando debugging, monitoramento e manutenção do sistema em produção.
+This implementation provides a solid foundation for observability, facilitating debugging, monitoring, and system maintenance in production.
