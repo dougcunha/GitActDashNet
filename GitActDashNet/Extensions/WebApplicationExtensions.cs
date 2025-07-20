@@ -40,6 +40,7 @@ public static class WebApplicationExtensions
     /// </summary>
     /// <param name="app">The web application.</param>
     /// <returns>The web application for chaining.</returns>
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static WebApplication ConfigureAuthenticationEndpoints(this WebApplication app)
     {
         // Minimal API endpoints for login and logout

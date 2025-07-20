@@ -70,6 +70,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IServiceCollection AddGitHubServices(this IServiceCollection services)
     {
         // Add HttpContextAccessor to access HttpContext from services
@@ -100,6 +101,7 @@ public static class ServiceCollectionExtensions
         // Register application services
         services.AddScoped<GitHubService>();
         services.AddScoped<LocalStorageService>();
+        services.AddSingleton<SidebarStateService>();
 
         return services;
     }

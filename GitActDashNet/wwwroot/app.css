@@ -59,6 +59,23 @@ h1:focus {
     text-align: start;
 }
 
+/* Keyboard shortcut styling */
+kbd {
+    background-color: var(--bs-gray-200);
+    border: 1px solid var(--bs-gray-400);
+    border-radius: 0.25rem;
+    color: var(--bs-gray-800);
+    font-size: 0.75em;
+    padding: 0.15rem 0.3rem;
+    font-family: var(--bs-font-monospace);
+}
+
+[data-bs-theme="dark"] kbd {
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-gray-600);
+    color: var(--bs-gray-200);
+}
+
 /* GitActDash Custom Styles */
 
 /* Dashboard Styles */
@@ -66,10 +83,105 @@ h1:focus {
     max-width: 1400px;
     margin: 0 auto;
     padding: 1rem;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Full-screen dashboard when sidebar is collapsed */
+.page.sidebar-collapsed .dashboard-container {
+    max-width: none;
+    margin: 0;
+    padding: 1rem 2rem;
 }
 
 .repository-grid {
     min-height: 400px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Improved repository grid layout when sidebar is collapsed */
+.page.sidebar-collapsed .repository-grid .row {
+    margin: 0 -0.75rem;
+}
+
+.page.sidebar-collapsed .repository-grid .col-lg-4 {
+    flex: 0 0 auto;
+    width: 25%; /* 4 columns instead of 3 */
+    padding: 0 0.75rem;
+}
+
+@media (min-width: 1600px) {
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        width: 20%; /* 5 columns on very wide screens */
+    }
+}
+
+@media (min-width: 1920px) {
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        width: 16.666667%; /* 6 columns on ultra-wide screens */
+    }
+}
+
+/* Sidebar Toggle Button Styles */
+.sidebar-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid var(--bs-border-color);
+    background-color: transparent;
+    color: var(--bs-body-color);
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-bs-theme="dark"] .sidebar-toggle-btn:hover {
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-toggle-btn i {
+    font-size: 1.1rem;
+    transition: transform 0.2s ease-in-out;
+}
+
+.sidebar-toggle-btn:hover i {
+    transform: scale(1.1);
+}
+
+/* Animation for dashboard header when sidebar toggles */
+.dashboard-container .d-flex.justify-content-between {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Improved spacing for header elements */
+.dashboard-container .d-flex.align-items-center .ms-3 {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Better responsive behavior */
+@media (max-width: 768px) {
+    .sidebar-toggle-btn .d-none.d-sm-inline {
+        display: none !important;
+    }
+    
+    .page.sidebar-collapsed .dashboard-container {
+        padding: 1rem;
+    }
+    
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        width: 50%; /* 2 columns on mobile when sidebar collapsed */
+    }
+}
+
+@media (max-width: 576px) {
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        width: 100%; /* 1 column on very small screens */
+    }
 }
 
 /* Filter Panel Styles */
@@ -275,11 +387,11 @@ h1:focus {
     .dashboard-container {
         padding: 0.5rem;
     }
-    
+
     .repository-column .card {
         min-height: 200px;
     }
-    
+
     .offcanvas-body {
         padding: 1rem;
     }

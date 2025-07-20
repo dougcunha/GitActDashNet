@@ -253,7 +253,7 @@
                 RepositorySortBy.UpdatedAt => _sortAscending
                     ? repositories.OrderBy(r => r.UpdatedAt).ToList()
                     : repositories.OrderByDescending(r => r.UpdatedAt).ToList(),
-                _ => repositories
+                var _ => repositories
             };
 
             return repositories;

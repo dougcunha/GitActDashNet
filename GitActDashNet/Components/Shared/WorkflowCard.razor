@@ -103,7 +103,7 @@
                 WorkflowRunConclusion.Success => "border-success",
                 WorkflowRunConclusion.Failure => "border-danger",
                 WorkflowRunConclusion.Cancelled => "border-warning",
-                _ => "border-secondary"
+                var _ => "border-secondary"
             };
         }
 
@@ -111,7 +111,7 @@
         {
             WorkflowRunStatus.InProgress => "border-primary",
             WorkflowRunStatus.Queued => "border-secondary",
-            _ => "border-secondary"
+            var _ => "border-secondary"
         };
     }
 
@@ -130,7 +130,7 @@
                 WorkflowRunConclusion.Success => "bg-success text-white",
                 WorkflowRunConclusion.Failure => "bg-danger text-white",
                 WorkflowRunConclusion.Cancelled => "bg-warning text-dark",
-                _ => "bg-secondary text-white"
+                var _ => "bg-secondary text-white"
             };
         }
 
@@ -138,7 +138,7 @@
         {
             WorkflowRunStatus.InProgress => "bg-primary text-white",
             WorkflowRunStatus.Queued => "bg-secondary text-white",
-            _ => "bg-secondary text-white"
+            var _ => "bg-secondary text-white"
         };
     }
 
@@ -157,7 +157,7 @@
                 WorkflowRunConclusion.Success => "text-success",
                 WorkflowRunConclusion.Failure => "text-danger",
                 WorkflowRunConclusion.Cancelled => "text-warning",
-                _ => "text-muted"
+                var _ => "text-muted"
             };
         }
 
@@ -165,7 +165,7 @@
         {
             WorkflowRunStatus.InProgress => "text-primary",
             WorkflowRunStatus.Queued => "text-secondary",
-            _ => "text-muted"
+            var _ => "text-muted"
         };
     }
 
@@ -184,7 +184,7 @@
                 WorkflowRunConclusion.Success => "bi-check-circle-fill",
                 WorkflowRunConclusion.Failure => "bi-x-circle-fill",
                 WorkflowRunConclusion.Cancelled => "bi-exclamation-triangle-fill",
-                _ => "bi-question-circle"
+                var _ => "bi-question-circle"
             };
         }
 
@@ -192,7 +192,7 @@
         {
             WorkflowRunStatus.InProgress => "bi-arrow-clockwise",
             WorkflowRunStatus.Queued => "bi-clock-fill",
-            _ => "bi-question-circle"
+            var _ => "bi-question-circle"
         };
     }
 
@@ -213,7 +213,7 @@
                 WorkflowRunConclusion.Cancelled => "Cancelled",
                 WorkflowRunConclusion.Skipped => "Skipped",
                 WorkflowRunConclusion.TimedOut => "Timed Out",
-                _ => "Completed"
+                var _ => "Completed"
             };
         }
 
@@ -223,7 +223,7 @@
             WorkflowRunStatus.Queued => "Queued",
             WorkflowRunStatus.Requested => "Requested",
             WorkflowRunStatus.Waiting => "Waiting",
-            _ => "Unknown"
+            var _ => "Unknown"
         };
     }
 

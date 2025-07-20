@@ -1,0 +1,84 @@
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<button class="btn btn-outline-secondary sidebar-toggle-btn" 
+        @onclick="ToggleSidebar"
+        id="sidebar-toggle-btn"
+        title="Toggle Sidebar (Ctrl+B)">
+    <i class="bi bi-layout-sidebar-reverse" id="sidebar-toggle-icon"></i>
+    @if (ShowText)
+    {
+        <span class="ms-2 d-none d-sm-inline" id="sidebar-toggle-text">
+            Hide Sidebar
+        </span>
+    }
+</button>
+
+@code {
+    [Parameter] public bool ShowText { get; set; } = false;
+    
+    private bool _isCollapsed = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize from localStorage and setup periodic check for external changes
+            _isCollapsed = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.initializeSidebar");
+            await UpdateToggleButton();
+            
+            // Setup periodic check for state changes from keyboard shortcuts
+            _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(100); // Check every 100ms
+                    try
+                    {
+                        var currentState = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.getSidebarState");
+                        if (currentState != _isCollapsed)
+                        {
+                            _isCollapsed = currentState;
+                            await InvokeAsync(async () => await UpdateToggleButton());
+                        }
+                    }
+                    catch
+                    {
+                        // Component might be disposed
+                        break;
+                    }
+                }
+            });
+        }
+    }
+
+    private async Task ToggleSidebar()
+    {
+        _isCollapsed = !_isCollapsed;
+        await JSRuntime.InvokeVoidAsync("gitActDashInterop.sidebar.setSidebarState", _isCollapsed);
+        await UpdateToggleButton();
+    }
+
+    private async Task UpdateToggleButton()
+    {
+        var iconClass = _isCollapsed ? "bi-layout-sidebar" : "bi-layout-sidebar-reverse";
+        var buttonTitle = _isCollapsed ? "Show Sidebar (Ctrl+B)" : "Hide Sidebar (Ctrl+B)";
+        var buttonText = _isCollapsed ? "Show Sidebar" : "Hide Sidebar";
+
+        await JSRuntime.InvokeVoidAsync("eval", $@"
+            const icon = document.getElementById('sidebar-toggle-icon');
+            const text = document.getElementById('sidebar-toggle-text');
+            const button = document.getElementById('sidebar-toggle-btn');
+            
+            if (icon) {{
+                icon.className = 'bi {iconClass}';
+            }}
+            if (text) {{
+                text.textContent = '{buttonText}';
+            }}
+            if (button) {{
+                button.title = '{buttonTitle}';
+            }}
+        ");
+    }
+}

@@ -61,7 +61,7 @@ public static class OctokitExtensions
             WorkflowRunStatus.Completed when workflowRun.Conclusion?.Value == WorkflowRunConclusion.Cancelled => "cancelled",
             WorkflowRunStatus.InProgress => "in_progress",
             WorkflowRunStatus.Queued => "queued",
-            _ => "unknown"
+            var _ => "unknown"
         };
 
     /// <summary>

@@ -2,14 +2,101 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease-in-out;
 }
 
 main {
     flex: 1;
+    transition: all 0.3s ease-in-out;
 }
 
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    transition: all 0.3s ease-in-out;
+    overflow: hidden;
+}
+
+.sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    border-right: none !important;
+}
+
+/* Ensure main content expands when sidebar is collapsed */
+.page.sidebar-collapsed main {
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+/* Hide navbar-toggler when sidebar is collapsed on mobile */
+.page.sidebar-collapsed .navbar-toggler {
+    display: none !important;
+}
+
+/* Dashboard specific adjustments */
+.dashboard-container {
+    transition: all 0.3s ease-in-out;
+}
+
+.page.sidebar-collapsed .dashboard-container {
+    max-width: none;
+    margin: 0;
+}
+
+/* Responsive adjustments for sidebar collapse */
+@media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        flex-shrink: 0;
+    }
+    
+    .sidebar.collapsed {
+        width: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .page.sidebar-collapsed main {
+        margin-left: 0 !important;
+    }
+    
+    /* Animate the repository grid when sidebar collapses */
+    .page.sidebar-collapsed .repository-grid .row {
+        max-width: 100%;
+    }
+    
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        flex: 0 0 auto;
+        width: 33.333333%;
+    }
+    
+    /* Adjust column sizes for wider screen when sidebar is collapsed */
+    .page.sidebar-collapsed .repository-grid .col-lg-4 {
+        width: 25%; /* 4 columns instead of 3 */
+    }
+    
+    @media (min-width: 1400px) {
+        .page.sidebar-collapsed .repository-grid .col-lg-4 {
+            width: 20%; /* 5 columns on very wide screens */
+        }
+    }
+}
+
+/* Theme Toggle Button Dark Mode Support */
+[data-bs-theme="dark"] .sidebar-toggle-btn {
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .sidebar-toggle-btn:hover {
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
 }
 
 /* Dark theme sidebar improvements */
@@ -24,6 +111,7 @@ main {
     height: 3.5rem;
     display: flex;
     align-items: center;
+    transition: all 0.3s ease-in-out;
 }
 
 /* Dark theme override for top-row */
@@ -66,6 +154,15 @@ main {
     .top-row ::deep a, .top-row ::deep .btn-link {
         margin-left: 0;
     }
+    
+    /* On mobile, sidebar collapse should be less dramatic */
+    .sidebar.collapsed {
+        width: 0 !important;
+    }
+    
+    .page.sidebar-collapsed main {
+        width: 100% !important;
+    }
 }
 
 @media (min-width: 641px) {
@@ -96,6 +193,35 @@ main {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }
+}
+
+/* Sidebar Toggle Styles */
+.sidebar-toggle-btn {
+    border-radius: 6px;
+    padding: 0.375rem 0.75rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar-toggle-btn:hover {
+    transform: translateY(-1px);
+}
+
+.sidebar-toggle-btn i {
+    font-size: 1.1rem;
+}
+
+/* Smooth transitions for better UX */
+* {
+    transition-property: width, margin, padding, transform;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out;
+}
+
+/* Prevent transition on initial load */
+.preload * {
+    transition: none !important;
 }
 
 #blazor-error-ui {

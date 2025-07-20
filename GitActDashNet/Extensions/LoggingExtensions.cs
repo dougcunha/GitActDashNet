@@ -14,6 +14,7 @@ public static class LoggingExtensions
     /// <param name="hostBuilder">The host builder.</param>
     /// <param name="configuration">The application configuration.</param>
     /// <returns>The host builder for chaining.</returns>
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IHostBuilder ConfigureSerilog(this IHostBuilder hostBuilder, IConfiguration configuration)
         => hostBuilder.UseSerilog((_, _, loggerConfiguration) =>
         {
@@ -45,8 +46,8 @@ public static class LoggingExtensions
         (
             path: "logs/gitactdash-.log",
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}",
+            shared: true,
             rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 31
-        )
+            retainedFileCountLimit: 10)
         .CreateLogger();
 }
