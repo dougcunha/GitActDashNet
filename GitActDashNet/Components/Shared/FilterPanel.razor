@@ -46,9 +46,9 @@
                            class="form-control"
                            id="searchInput"
                            placeholder="Type to search..."
-                           @bind="searchText"
+                           @bind="_searchText"
                            @bind:event="oninput" />
-                    @if (!string.IsNullOrEmpty(searchText))
+                    @if (!string.IsNullOrEmpty(_searchText))
                     {
                         <button class="btn btn-outline-secondary"
                                 type="button"
@@ -68,7 +68,7 @@
                            name="typeFilter"
                            id="typeAll"
                            @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.All))"
-                           checked="@(filterType == DataRepositoryType.All)">
+                           checked="@(_filterType == DataRepositoryType.All)">
                     <label class="btn btn-outline-primary" for="typeAll">
                         All (@AllRepositories.Count)
                     </label>
@@ -78,7 +78,7 @@
                            name="typeFilter"
                            id="typePersonal"
                            @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Personal))"
-                           checked="@(filterType == DataRepositoryType.Personal)">
+                           checked="@(_filterType == DataRepositoryType.Personal)">
                     <label class="btn btn-outline-primary" for="typePersonal">
                         Personal (@PersonalRepositories.Count)
                     </label>
@@ -88,7 +88,7 @@
                            name="typeFilter"
                            id="typeOrganization"
                            @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Organization))"
-                           checked="@(filterType == DataRepositoryType.Organization)">
+                           checked="@(_filterType == DataRepositoryType.Organization)">
                     <label class="btn btn-outline-primary" for="typeOrganization">
                         Org (@OrganizationRepositories.Count)
                     </label>
@@ -101,10 +101,10 @@
                 <div class="row g-2">
                     <div class="col-8">
                         <select class="form-select" @onchange="OnSortByChanged">
-                            <option value="@RepositorySortBy.Name" selected="@(sortBy == RepositorySortBy.Name)">
+                            <option value="@RepositorySortBy.Name" selected="@(_sortBy == RepositorySortBy.Name)">
                                 Name
                             </option>
-                            <option value="@RepositorySortBy.UpdatedAt" selected="@(sortBy == RepositorySortBy.UpdatedAt)">
+                            <option value="@RepositorySortBy.UpdatedAt" selected="@(_sortBy == RepositorySortBy.UpdatedAt)">
                                 Last Updated
                             </option>
                         </select>
@@ -112,7 +112,7 @@
                     <div class="col-4">
                         <button class="btn btn-outline-secondary w-100"
                                 @onclick="ToggleSortDirection">
-                            <i class="bi @(sortAscending ? "bi-sort-alpha-down" : "bi-sort-alpha-up")"></i>
+                            <i class="bi @(_sortAscending ? "bi-sort-alpha-down" : "bi-sort-alpha-up")"></i>
                         </button>
                     </div>
                 </div>
@@ -203,12 +203,13 @@
     private string? ErrorMessage { get; set; }
     private List<Repository> AllRepositories { get; set; } = [];
     private HashSet<long> SelectedRepositoryIds { get; set; } = [];
+    private bool _hasRendered;
 
     // Filter properties
-    private string searchText = string.Empty;
-    private DataRepositoryType filterType = DataRepositoryType.All;
-    private RepositorySortBy sortBy = RepositorySortBy.Name;
-    private bool sortAscending = true;
+    private string _searchText = string.Empty;
+    private DataRepositoryType _filterType = DataRepositoryType.All;
+    private RepositorySortBy _sortBy = RepositorySortBy.Name;
+    private bool _sortAscending = true;
 
     private const string SELECTED_REPOSITORIES_KEY = "gitactdash-selected-repositories";
 
@@ -222,16 +223,17 @@
     {
         get
         {
-            var repositories = filterType switch
+            var repositories = _filterType switch
             {
                 DataRepositoryType.Personal => PersonalRepositories,
                 DataRepositoryType.Organization => OrganizationRepositories,
-                _ => AllRepositories
+                var _ => AllRepositories
             };
 
-            if (!string.IsNullOrWhiteSpace(searchText))
+            if (!string.IsNullOrWhiteSpace(_searchText))
             {
-                var search = searchText.Trim().ToLowerInvariant();
+                var search = _searchText.Trim().ToLowerInvariant();
+
                 repositories = repositories.Where(r =>
                     r.Name.ToLowerInvariant().Contains(search) ||
                     r.Owner.Login.ToLowerInvariant().Contains(search) ||
@@ -239,12 +241,12 @@
                 ).ToList();
             }
 
-            repositories = sortBy switch
+            repositories = _sortBy switch
             {
-                RepositorySortBy.Name => sortAscending
+                RepositorySortBy.Name => _sortAscending
                     ? repositories.OrderBy(r => r.Name).ToList()
                     : repositories.OrderByDescending(r => r.Name).ToList(),
-                RepositorySortBy.UpdatedAt => sortAscending
+                RepositorySortBy.UpdatedAt => _sortAscending
                     ? repositories.OrderBy(r => r.UpdatedAt).ToList()
                     : repositories.OrderByDescending(r => r.UpdatedAt).ToList(),
                 _ => repositories
@@ -256,8 +258,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Only load repositories on initialization - localStorage will be loaded after render
         await LoadRepositoriesAsync().ConfigureAwait(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _hasRendered = true;
+        // Now it's safe to use JavaScript interop for localStorage
         await LoadSelectedRepositoriesAsync().ConfigureAwait(false);
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
     }
 
     private async Task LoadRepositoriesAsync()
@@ -266,7 +280,7 @@
 
         IsLoading = true;
         ErrorMessage = null;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
 
         try
         {
@@ -279,8 +293,9 @@
                     AllRepositories = result.Value!.ToList();
                     Logger.LogInformation("Successfully loaded {Count} repositories", AllRepositories.Count);
 
-                    // Auto-select first 5 repositories if none are selected
-                    if (SelectedRepositoryIds.Count == 0 && AllRepositories.Count > 0)
+                    // Auto-select first 5 repositories if none are selected and we haven't rendered yet
+                    // (this means localStorage hasn't been loaded yet)
+                    if (!_hasRendered && SelectedRepositoryIds.Count == 0 && AllRepositories.Count > 0)
                     {
                         var initialSelection = AllRepositories.Take(5).Select(r => r.Id).ToHashSet();
                         SelectedRepositoryIds = initialSelection;
@@ -293,7 +308,7 @@
                             await InvokeAsync(async () =>
                             {
                                 await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds);
-                                await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+                                // Save to localStorage will happen after render in OnAfterRenderAsync
                             });
                         });
                     }
@@ -324,20 +339,51 @@
     {
         using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(LoadSelectedRepositoriesAsync));
 
+        // Only proceed if JavaScript interop is available
+        if (!await LocalStorageService.IsAvailableAsync())
+        {
+            Logger.LogDebug("LocalStorage not available yet, skipping load of selected repositories");
+
+            return;
+        }
+
         try
         {
             var result = await LocalStorageService.GetItemAsync<long[]>(SELECTED_REPOSITORIES_KEY).ConfigureAwait(false);
 
-            await InvokeAsync(() =>
+            await InvokeAsync(async () =>
             {
                 if (result is { IsSuccess: true, Value: not null })
                 {
-                    SelectedRepositoryIds = [..result.Value];
-                    Logger.LogDebug("Loaded {Count} selected repositories from localStorage", SelectedRepositoryIds.Count);
+                    // Only update selection if we have valid data from localStorage
+                    var loadedIds = result.Value.ToHashSet();
+                    if (loadedIds.Count > 0)
+                    {
+                        SelectedRepositoryIds = loadedIds;
+                        Logger.LogDebug("Loaded {Count} selected repositories from localStorage", SelectedRepositoryIds.Count);
+
+                        // Notify parent component about the loaded selection
+                        await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds);
+                    }
+                    else
+                    {
+                        Logger.LogDebug("Empty repository selection loaded from localStorage");
+                        // Save current selection if we have auto-selected repositories
+                        if (SelectedRepositoryIds.Count > 0)
+                        {
+                            await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+                        }
+                    }
                 }
                 else
                 {
                     Logger.LogDebug("No selected repositories found in localStorage or error occurred: {Error}", result.ErrorMessage);
+
+                    // Save current selection if we have auto-selected repositories
+                    if (SelectedRepositoryIds.Count > 0)
+                    {
+                        await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+                    }
                 }
 
                 StateHasChanged();
@@ -352,6 +398,14 @@
     private async Task SaveSelectedRepositoriesAsync()
     {
         using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(SaveSelectedRepositoriesAsync));
+
+        // Only proceed if JavaScript interop is available
+        if (!await LocalStorageService.IsAvailableAsync())
+        {
+            Logger.LogDebug("LocalStorage not available, skipping save of selected repositories");
+
+            return;
+        }
 
         try
         {
@@ -376,28 +430,38 @@
         else
             SelectedRepositoryIds.Remove(repositoryId);
 
-        await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
-        await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds).ConfigureAwait(false);
-        StateHasChanged();
+        await SaveSelectedRepositoriesAsync();
+
+        await InvokeAsync(async () =>
+        {
+            await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds);
+            StateHasChanged();
+        }).ConfigureAwait(false);
+
     }
 
     private async Task ClearAllSelections()
     {
         SelectedRepositoryIds.Clear();
         await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
-        await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds).ConfigureAwait(false);
-        StateHasChanged();
+
+        await InvokeAsync(async () =>
+        {
+            await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds);
+            StateHasChanged();
+        });
+
     }
 
     private void ClearSearch()
     {
-        searchText = string.Empty;
+        _searchText = string.Empty;
         StateHasChanged();
     }
 
     private void OnTypeFilterChanged(DataRepositoryType type)
     {
-        filterType = type;
+        _filterType = type;
         StateHasChanged();
     }
 
@@ -406,13 +470,13 @@
         if (!Enum.TryParse<RepositorySortBy>(e.Value?.ToString(), out var newSortBy))
             return;
 
-        sortBy = newSortBy;
+        _sortBy = newSortBy;
         StateHasChanged();
     }
 
     private void ToggleSortDirection()
     {
-        sortAscending = !sortAscending;
+        _sortAscending = !_sortAscending;
         StateHasChanged();
     }
 

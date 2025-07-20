@@ -67,10 +67,10 @@
                 @foreach (var repositoryData in _repositoryWorkflows)
                 {
                     <div class="col-lg-4 col-md-6 col-12">
-                        <RepositoryColumn Repository="repositoryData.Repository"
-                                        WorkflowsWithRuns="repositoryData.WorkflowsWithRuns"
-                                        IsLoading="repositoryData.IsLoading"
-                                        ErrorMessage="repositoryData.ErrorMessage" />
+                        <RepositoryColumn Repository="@repositoryData.Repository"
+                            WorkflowsWithRuns="@repositoryData.WorkflowsWithRuns"
+                            IsLoading="@repositoryData.IsLoading"
+                            ErrorMessage="@repositoryData.ErrorMessage" />
                     </div>
                 }
             </div>

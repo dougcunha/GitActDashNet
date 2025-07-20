@@ -21,6 +21,28 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     };
 
     /// <summary>
+    /// Checks if JavaScript interop is available (not during prerendering).
+    /// </summary>
+    private async Task<bool> IsJavaScriptAvailableAsync()
+    {
+        try
+        {
+            // Try a simple, non-invasive JS call to test availability
+            await jsRuntime.InvokeAsync<bool>("Boolean", true);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            // This is the expected exception during prerendering
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Sets a value in localStorage.
     /// </summary>
     /// <param name="key">The key to store the value under.</param>
@@ -36,6 +58,13 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
             logger.LogWarning("Attempted to set localStorage item with null or empty key");
 
             return OperationResult.Failure("Key cannot be null or empty.");
+        }
+
+        if (!await IsJavaScriptAvailableAsync())
+        {
+            logger.LogWarning("JavaScript interop not available (prerendering). Cannot set localStorage item with key: {Key}", key);
+
+            return OperationResult.Failure("JavaScript interop is not available during prerendering. Please call this method after the component has been rendered.");
         }
 
         try
@@ -78,11 +107,7 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     {
         try
         {
-            var json = JsonSerializer.Serialize
-            (
-                value,
-                _jsonOptions
-            );
+            var json = JsonSerializer.Serialize(value, _jsonOptions);
 
             return await SetItemAsync(key, json, cancellationToken).ConfigureAwait(false);
         }
@@ -106,6 +131,13 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     {
         if (string.IsNullOrWhiteSpace(key))
             return OperationResult<string?>.Failure("Key cannot be null or empty.");
+
+        if (!await IsJavaScriptAvailableAsync())
+        {
+            logger.LogWarning("JavaScript interop not available (prerendering). Cannot get localStorage item with key: {Key}", key);
+
+            return OperationResult<string?>.Failure("JavaScript interop is not available during prerendering. Please call this method after the component has been rendered.");
+        }
 
         try
         {
@@ -146,11 +178,7 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
 
         try
         {
-            var value = JsonSerializer.Deserialize<T>
-            (
-                jsonResult.Value,
-                _jsonOptions
-            );
+            var value = JsonSerializer.Deserialize<T>(jsonResult.Value, _jsonOptions);
 
             return OperationResult<T?>.Success(value);
         }
@@ -174,6 +202,13 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     {
         if (string.IsNullOrWhiteSpace(key))
             return OperationResult.Failure("Key cannot be null or empty.");
+
+        if (!await IsJavaScriptAvailableAsync())
+        {
+            logger.LogWarning("JavaScript interop not available (prerendering). Cannot remove localStorage item with key: {Key}", key);
+
+            return OperationResult.Failure("JavaScript interop is not available during prerendering. Please call this method after the component has been rendered.");
+        }
 
         try
         {
@@ -202,6 +237,13 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     /// <returns>An operation result indicating success or failure.</returns>
     public async Task<OperationResult> ClearAsync(CancellationToken cancellationToken = default)
     {
+        if (!await IsJavaScriptAvailableAsync())
+        {
+            logger.LogWarning("JavaScript interop not available (prerendering). Cannot clear localStorage");
+
+            return OperationResult.Failure("JavaScript interop is not available during prerendering. Please call this method after the component has been rendered.");
+        }
+
         try
         {
             await jsRuntime.InvokeVoidAsync(CLEAR_FUNCTION, cancellationToken).ConfigureAwait(false);
@@ -221,4 +263,11 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
             return OperationResult.Failure($"Unexpected error while clearing localStorage: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Checks if the LocalStorage service is available for use (JavaScript interop is ready).
+    /// </summary>
+    /// <returns>True if LocalStorage operations can be performed, false if still in prerendering phase.</returns>
+    public async Task<bool> IsAvailableAsync()
+        => await IsJavaScriptAvailableAsync();
 }
