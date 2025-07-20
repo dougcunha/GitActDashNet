@@ -16,23 +16,33 @@
 
     private bool isDarkMode = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Detect current theme from document
-        isDarkMode = true; // Default to light mode
+        if (firstRender)
+        {
+            try
+            {
+                // Detect current theme from localStorage or default to light
+                var currentTheme = await JSRuntime.InvokeAsync<string>("gitActDashInterop.theme.getTheme");
+                isDarkMode = currentTheme == "dark";
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to detect initial theme, defaulting to light mode");
+                isDarkMode = false;
+            }
+        }
     }
 
     private async Task ToggleTheme()
     {
         try
         {
-            isDarkMode = !isDarkMode;
-            var theme = isDarkMode ? "dark" : "light";
+            var newTheme = await JSRuntime.InvokeAsync<string>("gitActDashInterop.theme.toggleTheme");
+            isDarkMode = newTheme == "dark";
 
-            // Apply theme via JavaScript
-            await JSRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-bs-theme', '{theme}')");
-
-            Logger.LogInformation("Theme toggled to: {Theme}", theme);
+            Logger.LogInformation("Theme toggled to: {Theme}", newTheme);
             StateHasChanged();
         }
         catch (Exception ex)

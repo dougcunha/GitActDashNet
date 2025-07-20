@@ -146,39 +146,43 @@
                 {
                     @foreach (var repository in FilteredRepositories)
                     {
-                        <div class="form-check mb-2 p-2 border rounded repository-item @(SelectedRepositoryIds.Contains(repository.Id) ? "bg-light" : "")">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   id="repo-@repository.Id"
-                                   checked="@SelectedRepositoryIds.Contains(repository.Id)"
-                                   @onchange="@(async (e) => await OnRepositorySelectionChanged(repository.Id, (bool)e.Value!))" />
-                            <label class="form-check-label w-100" for="repo-@repository.Id">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold text-truncate">
-                                            @repository.Name
-                                        </div>
-                                        <div class="small text-muted">
-                                            @repository.Owner.Login
-                                            @if (repository.Owner.Type == AccountType.Organization)
+                        <div class="repository-item mb-2 p-2 border rounded @(SelectedRepositoryIds.Contains(repository.Id) ? "selected" : "")">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="flex-shrink-0">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="repo-@repository.Id"
+                                           checked="@SelectedRepositoryIds.Contains(repository.Id)"
+                                           @onchange="@(async (e) => await OnRepositorySelectionChanged(repository.Id, (bool)e.Value!))" />
+                                </div>
+                                <label class="flex-grow-1" for="repo-@repository.Id" style="cursor: pointer;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1 me-2">
+                                            <div class="fw-semibold text-truncate">
+                                                @repository.Name
+                                            </div>
+                                            <div class="small text-muted">
+                                                @repository.Owner.Login
+                                                @if (repository.Owner.Type == AccountType.Organization)
+                                                {
+                                                    <span class="badge badge-sm bg-info ms-1">ORG</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(repository.Description))
                                             {
-                                                <span class="badge badge-sm bg-info ms-1">ORG</span>
+                                                <div class="small text-muted text-truncate mt-1" title="@repository.Description">
+                                                    @repository.Description
+                                                </div>
                                             }
                                         </div>
-                                        @if (!string.IsNullOrEmpty(repository.Description))
-                                        {
-                                            <div class="small text-muted text-truncate mt-1" title="@repository.Description">
-                                                @repository.Description
+                                        <div class="text-end flex-shrink-0">
+                                            <div class="small text-muted">
+                                                @repository.UpdatedAt.ToString("MMM dd")
                                             </div>
-                                        }
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="small text-muted">
-                                            @repository.UpdatedAt.ToString("MMM dd")
                                         </div>
                                     </div>
-                                </div>
-                            </label>
+                                </label>
+                            </div>
                         </div>
                     }
                 }

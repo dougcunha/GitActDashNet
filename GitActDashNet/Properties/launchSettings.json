@@ -5,6 +5,7 @@
         "commandName": "Project",
         "dotnetRunMessages": true,
         "launchBrowser": true,
+        "launchUrl": "dashboard",
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development"
         }

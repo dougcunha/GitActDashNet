@@ -91,7 +91,7 @@
     private string GetStatusBorderClass()
     {
         if (WorkflowWithRun.LatestRun?.Status == null)
-            return "border-light";
+            return "border-secondary";
 
         var status = WorkflowWithRun.LatestRun.Status.Value;
         var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
@@ -103,7 +103,7 @@
                 WorkflowRunConclusion.Success => "border-success",
                 WorkflowRunConclusion.Failure => "border-danger",
                 WorkflowRunConclusion.Cancelled => "border-warning",
-                _ => "border-light"
+                _ => "border-secondary"
             };
         }
 
@@ -111,14 +111,14 @@
         {
             WorkflowRunStatus.InProgress => "border-primary",
             WorkflowRunStatus.Queued => "border-secondary",
-            _ => "border-light"
+            _ => "border-secondary"
         };
     }
 
     private string GetStatusBadgeClass()
     {
         if (WorkflowWithRun.LatestRun?.Status == null)
-            return "bg-light text-dark";
+            return "bg-secondary text-white";
 
         var status = WorkflowWithRun.LatestRun.Status.Value;
         var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
@@ -127,18 +127,18 @@
         {
             return conclusion switch
             {
-                WorkflowRunConclusion.Success => "bg-success",
-                WorkflowRunConclusion.Failure => "bg-danger",
-                WorkflowRunConclusion.Cancelled => "bg-warning",
-                _ => "bg-light text-dark"
+                WorkflowRunConclusion.Success => "bg-success text-white",
+                WorkflowRunConclusion.Failure => "bg-danger text-white",
+                WorkflowRunConclusion.Cancelled => "bg-warning text-dark",
+                _ => "bg-secondary text-white"
             };
         }
 
         return status switch
         {
-            WorkflowRunStatus.InProgress => "bg-primary",
-            WorkflowRunStatus.Queued => "bg-secondary",
-            _ => "bg-light text-dark"
+            WorkflowRunStatus.InProgress => "bg-primary text-white",
+            WorkflowRunStatus.Queued => "bg-secondary text-white",
+            _ => "bg-secondary text-white"
         };
     }
 

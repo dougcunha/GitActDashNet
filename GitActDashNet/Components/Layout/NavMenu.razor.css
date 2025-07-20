@@ -20,6 +20,11 @@
     background-color: rgba(0,0,0,0.4);
 }
 
+/* Dark theme improvements for NavMenu top-row */
+[data-bs-theme="dark"] .top-row {
+    background-color: rgba(26, 26, 26, 0.9) !important;
+}
+
 .navbar-brand {
     font-size: 1.1rem;
 }

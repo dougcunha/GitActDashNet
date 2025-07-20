@@ -12,6 +12,11 @@ main {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
 }
 
+/* Dark theme sidebar improvements */
+[data-bs-theme="dark"] .sidebar {
+    background-image: linear-gradient(180deg, #1a1a1a 0%, #0d1117 70%);
+}
+
 .top-row {
     background-color: #f7f7f7;
     border-bottom: 1px solid #d6d5d5;
@@ -19,6 +24,12 @@ main {
     height: 3.5rem;
     display: flex;
     align-items: center;
+}
+
+/* Dark theme override for top-row */
+[data-bs-theme="dark"] .top-row {
+    background-color: var(--bs-dark) !important;
+    border-bottom: 1px solid var(--bs-border-color) !important;
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
@@ -35,6 +46,17 @@ main {
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+/* Dark theme improvements for links in top-row */
+[data-bs-theme="dark"] .top-row ::deep a,
+[data-bs-theme="dark"] .top-row ::deep .btn-link {
+    color: var(--bs-primary) !important;
+}
+
+[data-bs-theme="dark"] .top-row ::deep a:hover,
+[data-bs-theme="dark"] .top-row ::deep .btn-link:hover {
+    color: var(--bs-primary-text-emphasis) !important;
+}
 
 @media (max-width: 640.98px) {
     .top-row {

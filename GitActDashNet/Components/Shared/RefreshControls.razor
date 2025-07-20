@@ -8,7 +8,7 @@
             <input class="form-check-input"
                    type="checkbox"
                    id="autoRefreshSwitch"
-                   checked="@isAutoRefreshEnabled"
+                   checked="@_isAutoRefreshEnabled"
                    @onchange="OnAutoRefreshToggle">
             <label class="form-check-label" for="autoRefreshSwitch">
                 Auto Refresh
@@ -16,13 +16,13 @@
         </div>
 
         <!-- Refresh Interval Selector -->
-        @if (isAutoRefreshEnabled)
+        @if (_isAutoRefreshEnabled)
         {
             <select class="form-select form-select-sm"
                     style="width: auto;"
-                    value="@selectedInterval"
+                    value="@_selectedInterval"
                     @onchange="OnIntervalChanged">
-                @foreach (var option in refreshIntervals)
+                @foreach (var option in _refreshIntervals)
                 {
                     <option value="@option.Seconds">@option.Label</option>
                 }
@@ -30,7 +30,7 @@
         }
 
         <!-- Manual Refresh Button -->
-        <button class="btn btn-outline-primary btn-sm"
+        <button class="btn btn-outline-primary"
                 @onclick="OnManualRefresh"
                 disabled="@IsRefreshing"
                 title="Refresh now">
@@ -46,7 +46,7 @@
         </button>
 
         <!-- Countdown Display -->
-        @if (isAutoRefreshEnabled && !IsRefreshing)
+        @if (_isAutoRefreshEnabled && !IsRefreshing)
         {
             <small class="text-muted">
                 Next: @GetCountdownText()
@@ -59,12 +59,12 @@
     [Parameter] public EventCallback OnRefresh { get; set; }
     [Parameter] public bool IsRefreshing { get; set; }
 
-    private bool isAutoRefreshEnabled = false;
-    private int selectedInterval = 300; // 5 minutes default
-    private Timer? refreshTimer;
-    private int remainingSeconds = 0;
+    private bool _isAutoRefreshEnabled;
+    private int _selectedInterval = 300; // 5 minutes default
+    private Timer? _refreshTimer;
+    private int _remainingSeconds;
 
-    private readonly RefreshInterval[] refreshIntervals =
+    private readonly RefreshInterval[] _refreshIntervals =
     [
         new(30, "30 seconds"),
         new(60, "1 minute"),
@@ -86,12 +86,12 @@
     {
         using var _ = Logger.ForComponentOperation(nameof(RefreshControls), nameof(OnAutoRefreshToggle));
 
-        isAutoRefreshEnabled = (bool)e.Value!;
+        _isAutoRefreshEnabled = (bool)e.Value!;
 
-        if (isAutoRefreshEnabled)
+        if (_isAutoRefreshEnabled)
         {
             await StartAutoRefresh().ConfigureAwait(false);
-            Logger.LogInformation("Auto refresh enabled with interval: {Interval} seconds", selectedInterval);
+            Logger.LogInformation("Auto refresh enabled with interval: {Interval} seconds", _selectedInterval);
         }
         else
         {
@@ -107,10 +107,10 @@
         if (!int.TryParse(e.Value?.ToString(), out var newInterval))
             return Task.CompletedTask;
 
-        selectedInterval = newInterval;
-        Logger.LogDebug("Refresh interval changed to: {Interval} seconds", selectedInterval);
+        _selectedInterval = newInterval;
+        Logger.LogDebug("Refresh interval changed to: {Interval} seconds", _selectedInterval);
 
-        return isAutoRefreshEnabled ? StartAutoRefresh() : Task.CompletedTask;
+        return _isAutoRefreshEnabled ? StartAutoRefresh() : Task.CompletedTask;
     }
 
     private async Task OnManualRefresh()
@@ -123,7 +123,7 @@
             await OnRefresh.InvokeAsync().ConfigureAwait(false);
 
             // Reset countdown if auto refresh is enabled
-            if (isAutoRefreshEnabled)
+            if (_isAutoRefreshEnabled)
                 await StartAutoRefresh().ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -136,22 +136,22 @@
     {
         StopAutoRefresh();
 
-        remainingSeconds = selectedInterval;
+        _remainingSeconds = _selectedInterval;
 
-        refreshTimer = new Timer(async void (_) =>
+        _refreshTimer = new Timer(async void (_) =>
         {
             try
             {
-                remainingSeconds--;
+                _remainingSeconds--;
 
-                if (remainingSeconds <= 0)
+                if (_remainingSeconds <= 0)
                 {
                     try
                     {
                         await InvokeAsync(async () =>
                         {
                             await OnRefresh.InvokeAsync().ConfigureAwait(false);
-                            remainingSeconds = selectedInterval;
+                            _remainingSeconds = _selectedInterval;
                             StateHasChanged();
                         });
                     }
@@ -176,18 +176,18 @@
 
     private void StopAutoRefresh()
     {
-        refreshTimer?.Dispose();
-        refreshTimer = null;
-        remainingSeconds = 0;
+        _refreshTimer?.Dispose();
+        _refreshTimer = null;
+        _remainingSeconds = 0;
     }
 
     private string GetCountdownText()
     {
-        if (remainingSeconds <= 0)
+        if (_remainingSeconds <= 0)
             return "Now";
 
-        var minutes = remainingSeconds / 60;
-        var seconds = remainingSeconds % 60;
+        var minutes = _remainingSeconds / 60;
+        var seconds = _remainingSeconds % 60;
 
         return minutes > 0
             ? $"{minutes}m {seconds}s"
