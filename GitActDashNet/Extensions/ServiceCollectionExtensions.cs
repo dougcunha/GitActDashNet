@@ -51,7 +51,7 @@ public static class ServiceCollectionExtensions
             {
                 options.ClientId = configuration["GitHub:ClientId"]!;
                 options.ClientSecret = configuration["GitHub:ClientSecret"]!;
-                options.CallbackPath = "/signin-github";
+                options.CallbackPath = "/api/auth/callback";
 
                 // Requesting the necessary scopes as per spec
                 options.Scope.Add("repo");
