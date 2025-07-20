@@ -1,0 +1,261 @@
+@page "/preferences"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject LocalStorageService LocalStorageService
+@inject ILogger<Preferences> Logger
+
+<PageTitle>Preferences - GitActDash</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-gear me-2"></i>
+                        Preferences
+                    </h1>
+                    <p class="text-muted mb-0">Customize your GitActDash experience</p>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Appearance Settings -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-palette me-2"></i>
+                                Appearance
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Theme</label>
+                                    <div class="d-flex gap-2">
+                                        <ThemeToggle ShowText="true" />
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Choose between light and dark themes
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Auto Refresh</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="autoRefreshPref" @bind="_autoRefreshEnabled">
+                                        <label class="form-check-label" for="autoRefreshPref">
+                                            Enable auto refresh
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Automatically refresh dashboard data
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Settings -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-speedometer2 me-2"></i>
+                                Dashboard
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="defaultRepoCount" class="form-label">Default Repository Count</label>
+                                    <select class="form-select" id="defaultRepoCount" @bind="_defaultRepoCount">
+                                        <option value="3">3 repositories</option>
+                                        <option value="5">5 repositories</option>
+                                        <option value="10">10 repositories</option>
+                                        <option value="15">15 repositories</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Number of repositories to auto-select initially
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="refreshInterval" class="form-label">Refresh Interval</label>
+                                    <select class="form-select" id="refreshInterval" @bind="_refreshInterval">
+                                        <option value="30">30 seconds</option>
+                                        <option value="60">1 minute</option>
+                                        <option value="300">5 minutes</option>
+                                        <option value="600">10 minutes</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        How often to refresh workflow data
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workflow Settings -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-gear-wide-connected me-2"></i>
+                                Workflows
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="showFailedOnly" @bind="_showFailedOnly">
+                                        <label class="form-check-label" for="showFailedOnly">
+                                            Highlight failed workflows
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Emphasize workflows with failed status
+                                    </small>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="groupByStatus" @bind="_groupByStatus">
+                                        <label class="form-check-label" for="groupByStatus">
+                                            Group workflows by status
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Organize workflows by their current status
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" @onclick="SavePreferences">
+                            <i class="bi bi-check2 me-2"></i>
+                            Save Preferences
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="ResetPreferences">
+                            <i class="bi bi-arrow-clockwise me-2"></i>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <i class="bi bi-lightbulb text-warning me-2"></i>
+                            Use dark theme to reduce eye strain during long sessions
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-lightbulb text-warning me-2"></i>
+                            Enable auto refresh for real-time monitoring
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-lightbulb text-warning me-2"></i>
+                            Adjust refresh interval based on your workflow frequency
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _autoRefreshEnabled = false;
+    private int _defaultRepoCount = 5;
+    private int _refreshInterval = 300;
+    private bool _showFailedOnly = false;
+    private bool _groupByStatus = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Preferences), nameof(OnInitializedAsync));
+        await LoadPreferences();
+    }
+
+    private async Task LoadPreferences()
+    {
+        try
+        {
+            if (await LocalStorageService.IsAvailableAsync())
+            {
+                var autoRefreshResult = await LocalStorageService.GetItemAsync<bool>("pref-auto-refresh");
+                if (autoRefreshResult.IsSuccess && autoRefreshResult.Value)
+                {
+                    _autoRefreshEnabled = autoRefreshResult.Value;
+                }
+
+                var repoCountResult = await LocalStorageService.GetItemAsync<int>("pref-default-repo-count");
+                if (repoCountResult.IsSuccess && repoCountResult.Value > 0)
+                {
+                    _defaultRepoCount = repoCountResult.Value;
+                }
+
+                var intervalResult = await LocalStorageService.GetItemAsync<int>("pref-refresh-interval");
+                if (intervalResult.IsSuccess && intervalResult.Value > 0)
+                {
+                    _refreshInterval = intervalResult.Value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading preferences");
+        }
+    }
+
+    private async Task SavePreferences()
+    {
+        try
+        {
+            if (await LocalStorageService.IsAvailableAsync())
+            {
+                await LocalStorageService.SetItemAsync("pref-auto-refresh", _autoRefreshEnabled);
+                await LocalStorageService.SetItemAsync("pref-default-repo-count", _defaultRepoCount);
+                await LocalStorageService.SetItemAsync("pref-refresh-interval", _refreshInterval);
+                await LocalStorageService.SetItemAsync("pref-show-failed-only", _showFailedOnly);
+                await LocalStorageService.SetItemAsync("pref-group-by-status", _groupByStatus);
+
+                Logger.LogInformation("Preferences saved successfully");
+                
+                // Show success feedback (you could add a toast notification here)
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving preferences");
+        }
+    }
+
+    private async Task ResetPreferences()
+    {
+        _autoRefreshEnabled = false;
+        _defaultRepoCount = 5;
+        _refreshInterval = 300;
+        _showFailedOnly = false;
+        _groupByStatus = false;
+
+        await SavePreferences();
+    }
+}

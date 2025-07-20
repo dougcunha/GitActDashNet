@@ -1,4 +1,3 @@
-
 # Project Specification: GitActDash for .NET
 
 ## 1. Project Overview
@@ -95,6 +94,41 @@ GitActDash is a dashboard that allows users to monitor the status of their GitHu
 - A toggle button must allow the user to switch between themes.
 - The user's theme preference must be saved in `localStorage`.
 
+### FR-17: Enhanced Navigation Sidebar
+- The application must feature a comprehensive navigation sidebar organized into logical sections:
+  - **Main Navigation:** Dashboard, All Workflows, Repositories, Analytics
+  - **Tools Section:** Runner Status, Secrets Manager
+  - **Settings Section:** Preferences, Notifications
+  - **Help Section:** Documentation, Shortcuts, About
+  - **Quick Actions:** Direct links to external GitHub resources
+
+### FR-18: All Workflows Page
+- A dedicated page (`/workflows`) must provide a comprehensive view of all workflows across repositories.
+- This page should include functionality for:
+  - Searchable workflow list
+  - Filter by status and repository
+  - Bulk actions on workflows
+  - Workflow analytics and insights
+
+### FR-19: Preferences Management
+- A comprehensive preferences page (`/preferences`) must allow users to customize their experience:
+  - **Appearance Settings:** Theme selection, auto-refresh toggles
+  - **Dashboard Settings:** Default repository count, refresh intervals
+  - **Workflow Settings:** Failed workflow highlighting, grouping options
+  - All preferences must be persisted in `localStorage` using the existing `LocalStorageService`
+
+### FR-20: About Page
+- An informational page (`/about`) must provide details about the application:
+  - Project overview and features
+  - Technology stack information
+  - Links to documentation and source code
+  - Version information and credits
+
+### FR-21: Active Navigation State
+- The sidebar navigation must highlight the currently active page.
+- Navigation state must be automatically updated when the user navigates between pages.
+- Visual indicators must clearly show which section/page is currently selected.
+
 ## 4. Non-Functional Requirements (NFR)
 
 - **NFR-01 (Security):** The GitHub access token must not be stored on the client or in logs. It must be managed by the ASP.NET Core server session.
@@ -103,6 +137,7 @@ GitActDash is a dashboard that allows users to monitor the status of their GitHu
 - **NFR-04 (Maintainability):** The code must be well-structured, with a clear separation of concerns (e.g., Blazor components for UI, services for business logic and data access). The use of Octokit.NET ensures a robust abstraction layer for the GitHub API.
 - **NFR-05 (Error Handling):** All service methods must use the monad pattern with `OperationResult<T>` to handle success, failure, and warning states without throwing exceptions. This ensures predictable error handling and better composability of operations.
 - **NFR-06 (Observability):** All operations must be properly logged using Serilog with structured logging and contextual enrichers. This includes operation timing, GitHub API calls, error details, and user actions for debugging and monitoring purposes.
+- **NFR-07 (Navigation Experience):** The sidebar navigation must provide a smooth, intuitive user experience with proper visual feedback, hover states, and accessibility features.
 
 ## 5. Data Structure (C# Models)
 
@@ -146,6 +181,16 @@ public enum RepositorySortBy
     Name,
     UpdatedAt
 }
+
+// User preferences model
+public sealed record UserPreferences(
+    bool AutoRefreshEnabled = false,
+    int DefaultRepositoryCount = 5,
+    int RefreshInterval = 300,
+    bool ShowFailedOnly = false,
+    bool GroupByStatus = false,
+    string Theme = "light"
+);
 ```
 
 ### 5.1 Monad Pattern with OperationResult
@@ -170,17 +215,28 @@ var result = await gitHubService.GetUserRepositoriesAsync()
     .OnSuccess(repos => logger.LogInformation($"Found {repos.Length} repositories"));
 ```
 
-## 6. Project Structure (Suggestion)
+## 6. Project Structure (Updated)
 
 ```
 /GitActDash.Blazor/
 ├── Components/
 │   ├── Pages/
-│   │   ├── Home.razor         (Login Page)
-│   │   └── Dashboard.razor    (Main Dashboard)
+│   │   ├── Home.razor            (Login Page)
+│   │   ├── Dashboard.razor       (Main Dashboard)
+│   │   ├── AllWorkflows.razor    (All Workflows View - NEW)
+│   │   ├── About.razor           (About Page - NEW)
+│   │   ├── Preferences.razor     (User Preferences - NEW)
+│   │   ├── Repositories.razor    (Repository Management - Future)
+│   │   ├── Analytics.razor       (Analytics Dashboard - Future)
+│   │   ├── RunnerStatus.razor    (GitHub Runner Status - Future)
+│   │   ├── Secrets.razor         (Secrets Manager - Future)
+│   │   ├── Notifications.razor   (Notification Settings - Future)
+│   │   └── Shortcuts.razor       (Keyboard Shortcuts - Future)
 │   ├── Layout/
 │   │   ├── MainLayout.razor
-│   │   └── NavMenu.razor
+│   │   ├── MainLayout.razor.css
+│   │   ├── NavMenu.razor         (Enhanced with full navigation)
+│   │   └── NavMenu.razor.css     (Updated with section styling)
 │   └── Shared/
 │       ├── FilterPanel.razor
 │       ├── RepositoryColumn.razor
@@ -188,21 +244,22 @@ var result = await gitHubService.GetUserRepositoriesAsync()
 │       ├── RefreshControls.razor
 │       └── ThemeToggle.razor
 ├── Services/
-│   ├── GitHubService.cs       (Wrapper for Octokit.NET with OperationResult pattern)
-│   └── LocalStorageService.cs (Wrapper for JS Interop with localStorage using OperationResult)
+│   ├── GitHubService.cs          (Wrapper for Octokit.NET with OperationResult pattern)
+│   ├── LocalStorageService.cs    (Enhanced with preferences support)
+│   └── PreferencesService.cs     (User preferences management - Future)
 ├── Utils/
-│   ├── OperationResult.cs     (Monad pattern implementation for error handling)
+│   ├── OperationResult.cs        (Monad pattern implementation for error handling)
 │   ├── OperationResultExtensions.cs (Extension methods for fluent operations)
-│   └── LoggingExtensions.cs   (Serilog extensions for contextual logging)
+│   └── LoggingExtensions.cs      (Serilog extensions for contextual logging)
 ├── Data/
-│   └── GitHubModels.cs        (Auxiliary models and enums specific to the application)
+│   └── GitHubModels.cs           (Auxiliary models and enums specific to the application)
 ├── wwwroot/
 │   ├── css/
-│   │   └── app.css
+│   │   └── app.css               (Enhanced with navigation styling)
 │   └── js/
-│       └── interop.js         (JS functions for fullscreen, theme, etc.)
-├── Program.cs                 (Application, services, and authentication configuration)
-└── appsettings.json           (GitHub Client ID and Client Secret configuration)
+│       └── interop.js            (JS functions for fullscreen, theme, etc.)
+├── Program.cs                    (Application, services, and authentication configuration)
+└── appsettings.json              (GitHub Client ID and Client Secret configuration)
 ```
 
 ## 8. Octokit.NET Configuration and Usage
@@ -236,10 +293,11 @@ public async Task<OperationResult<IReadOnlyList<Workflow>>> GetWorkflowsAsync(st
 public async Task<OperationResult<IReadOnlyList<WorkflowWithLatestRun>>> GetWorkflowsWithLatestRunsAsync(Repository repository, CancellationToken cancellationToken = default);
 public async Task<OperationResult<WorkflowRun?>> GetLatestWorkflowRunAsync(string owner, string repoName, long workflowId, CancellationToken cancellationToken = default);
 
-// LocalStorageService methods
+// LocalStorageService methods (Enhanced)
 public async Task<OperationResult> SetItemAsync<T>(string key, T value, CancellationToken cancellationToken = default);
 public async Task<OperationResult<T?>> GetItemAsync<T>(string key, CancellationToken cancellationToken = default);
 public async Task<OperationResult> RemoveItemAsync(string key, CancellationToken cancellationToken = default);
+public async Task<bool> IsAvailableAsync(); // Check if localStorage is available
 ```
 
 ### 8.3 Error Handling Strategy
@@ -332,11 +390,24 @@ using var componentContext = logger.ForComponentOperation("FilterPanel", "LoadRe
     - In `Dashboard.razor`, when the repository selection changes, call the new service method.
     - Create the `RepositoryColumn.razor` and `WorkflowCard.razor` components to display workflow data.
 
-6.  **Additional Features:**
+6.  **Enhanced Navigation and Additional Pages:**
+    - Implement the comprehensive navigation sidebar with organized sections.
+    - Create `AllWorkflows.razor` for comprehensive workflow management.
+    - Create `Preferences.razor` for user customization.
+    - Create `About.razor` for application information.
+    - Implement active navigation state management.
+
+7.  **Additional Features:**
     - Implement the auto-refresh feature (`RefreshControls.razor`) using a `System.Threading.Timer`.
     - Implement theme toggling (light/dark) and fullscreen mode using JS Interop.
+    - Add comprehensive preferences management with localStorage persistence.
 
-7.  **Polishing:**
+8.  **Future Expansion:**
+    - Implement remaining pages: Repositories, Analytics, Runner Status, Secrets, Notifications, Shortcuts.
+    - Add advanced workflow analytics and management features.
+    - Implement notification system and advanced user preferences.
+
+9.  **Polishing:**
     - Add loading indicators throughout the UI.
-    - Refine the CSS to match the original application's design.
-    - Perform comprehensive testing of all features.
+    - Refine the CSS to match the original application's design with enhanced navigation.
+    - Perform comprehensive testing of all features including new navigation and pages.

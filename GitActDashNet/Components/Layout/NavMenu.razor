@@ -1,6 +1,14 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@page "/"
+@inject NavigationManager Navigation
+@inject ILogger<NavMenu> Logger
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">GitActDashNet</a>
+        <a class="navbar-brand" href="">
+            <i class="bi bi-github me-2"></i>
+            GitActDashNet
+        </a>
     </div>
 </div>
 
@@ -8,7 +16,152 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
-        
+        <!-- Main Navigation -->
+        <div class="nav-section">
+            <div class="nav-section-header">
+                <small class="text-uppercase text-muted fw-semibold">Main</small>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/dashboard")" href="/dashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/workflows")" href="/workflows">
+                    <i class="bi bi-gear-wide-connected"></i>
+                    All Workflows
+                    <span class="badge bg-primary ms-auto">New</span>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/repositories")" href="/repositories">
+                    <i class="bi bi-folder2-open"></i>
+                    Repositories
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/analytics")" href="/analytics">
+                    <i class="bi bi-bar-chart-line"></i>
+                    Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- Tools Section -->
+        <div class="nav-section">
+            <div class="nav-section-header">
+                <small class="text-uppercase text-muted fw-semibold">Tools</small>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/runner-status")" href="/runner-status">
+                    <i class="bi bi-cpu"></i>
+                    Runner Status
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/secrets")" href="/secrets">
+                    <i class="bi bi-shield-lock"></i>
+                    Secrets Manager
+                </a>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="nav-section">
+            <div class="nav-section-header">
+                <small class="text-uppercase text-muted fw-semibold">Settings</small>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/preferences")" href="/preferences">
+                    <i class="bi bi-gear"></i>
+                    Preferences
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/notifications")" href="/notifications">
+                    <i class="bi bi-bell"></i>
+                    Notifications
+                </a>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="nav-section">
+            <div class="nav-section-header">
+                <small class="text-uppercase text-muted fw-semibold">Help</small>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link" href="https://github.com/dougcunha/GitActDashNet" target="_blank">
+                    <i class="bi bi-book"></i>
+                    Documentation
+                    <i class="bi bi-box-arrow-up-right ms-auto small"></i>
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/shortcuts")" href="/shortcuts">
+                    <i class="bi bi-keyboard"></i>
+                    Shortcuts
+                </a>
+            </div>
+
+            <div class="nav-item">
+                <a class="nav-link @GetNavLinkClass("/about")" href="/about">
+                    <i class="bi bi-info-circle"></i>
+                    About
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions at Bottom -->
+        <div class="nav-section mt-auto">
+            <div class="nav-item">
+                <a class="nav-link text-success" href="https://github.com/new" target="_blank">
+                    <i class="bi bi-plus-circle"></i>
+                    New Repository
+                    <i class="bi bi-box-arrow-up-right ms-auto small"></i>
+                </a>
+            </div>
+        </div>
     </nav>
 </div>
+
+@code {
+    private string? _currentUrl;
+
+    protected override void OnInitialized()
+    {
+        _currentUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _currentUrl = Navigation.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    private string GetNavLinkClass(string href)
+    {
+        var normalizedHref = href.TrimStart('/');
+        var normalizedCurrentUrl = _currentUrl?.TrimStart('/') ?? "";
+
+        return normalizedCurrentUrl.Equals(normalizedHref, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}
 

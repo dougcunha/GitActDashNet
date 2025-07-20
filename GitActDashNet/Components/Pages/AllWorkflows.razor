@@ -1,0 +1,79 @@
+@page "/workflows"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject GitHubService GitHubService
+@inject ILogger<AllWorkflows> Logger
+
+<PageTitle>All Workflows - GitActDash</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-gear-wide-connected me-2"></i>
+                All Workflows
+            </h1>
+            <p class="text-muted mb-0">Comprehensive view of all workflows across your repositories</p>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <ThemeToggle />
+            <RefreshControls OnRefresh="RefreshData" IsRefreshing="_isLoading" />
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading workflows...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Coming Soon!</strong> This page will show a comprehensive list of all workflows across your repositories.
+            For now, use the <a href="/dashboard" class="alert-link">Dashboard</a> to view workflows by repository.
+        </div>
+        
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-gear-wide-connected display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">All Workflows View</h4>
+                <p class="text-muted">
+                    This feature will include:
+                </p>
+                <ul class="list-unstyled text-muted">
+                    <li><i class="bi bi-check2 text-success me-2"></i>Searchable workflow list</li>
+                    <li><i class="bi bi-check2 text-success me-2"></i>Filter by status and repository</li>
+                    <li><i class="bi bi-check2 text-success me-2"></i>Bulk actions</li>
+                    <li><i class="bi bi-check2 text-success me-2"></i>Workflow analytics</li>
+                </ul>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(AllWorkflows), nameof(OnInitialized));
+        Logger.LogInformation("All Workflows page initialized");
+    }
+
+    private async Task RefreshData()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        
+        // Simulate loading
+        await Task.Delay(1000);
+        
+        _isLoading = false;
+        StateHasChanged();
+    }
+}

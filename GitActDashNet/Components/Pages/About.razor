@@ -1,0 +1,94 @@
+@page "/about"
+@rendermode InteractiveServer
+
+<PageTitle>About - GitActDash</PageTitle>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <i class="bi bi-github display-1 text-primary mb-3"></i>
+                <h1 class="display-4 fw-bold">GitActDashNet</h1>
+                <p class="lead text-muted">
+                    A modern GitHub Actions dashboard built with Blazor and .NET 9
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-speedometer2 text-primary me-2"></i>
+                                Features
+                            </h5>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check2-circle text-success me-2"></i>Real-time workflow monitoring</li>
+                                <li><i class="bi bi-check2-circle text-success me-2"></i>Multi-repository dashboard</li>
+                                <li><i class="bi bi-check2-circle text-success me-2"></i>Dark/Light theme support</li>
+                                <li><i class="bi bi-check2-circle text-success me-2"></i>Responsive design</li>
+                                <li><i class="bi bi-check2-circle text-success me-2"></i>GitHub OAuth integration</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-stack text-primary me-2"></i>
+                                Tech Stack
+                            </h5>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-dot text-primary"></i>Blazor Server (.NET 9)</li>
+                                <li><i class="bi bi-dot text-primary"></i>Bootstrap 5.3</li>
+                                <li><i class="bi bi-dot text-primary"></i>Bootstrap Icons</li>
+                                <li><i class="bi bi-dot text-primary"></i>Octokit.NET</li>
+                                <li><i class="bi bi-dot text-primary"></i>Serilog</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-info-circle text-primary me-2"></i>
+                                About This Project
+                            </h5>
+                            <p class="card-text">
+                                GitActDashNet is a modern web application designed to provide developers with
+                                a comprehensive view of their GitHub Actions workflows. Built with the latest
+                                .NET technologies, it offers a clean, responsive interface for monitoring
+                                CI/CD pipelines across multiple repositories.
+                            </p>
+                            <p class="card-text">
+                                The application leverages Blazor Server for real-time updates and GitHub's
+                                REST API for seamless integration with your repositories and workflows.
+                            </p>
+                            
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="https://github.com" target="_blank" class="btn btn-outline-primary">
+                                    <i class="bi bi-github me-2"></i>
+                                    View on GitHub
+                                </a>
+                                <a href="/dashboard" class="btn btn-primary">
+                                    <i class="bi bi-speedometer2 me-2"></i>
+                                    Go to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-5 text-muted">
+                <small>
+                    Made with <i class="bi bi-heart-fill text-danger"></i> using Blazor and .NET 9
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
