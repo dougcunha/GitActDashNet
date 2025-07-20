@@ -1,0 +1,118 @@
+@inject ILogger<RepositoryColumn> Logger
+
+<div class="repository-column">
+    <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-truncate">
+                    <i class="bi bi-folder me-2"></i>
+                    @Repository.Name
+                </h6>
+                <small class="opacity-75">
+                    @Repository.Owner.Login
+                </small>
+            </div>
+        </div>
+
+        <div class="card-body p-2">
+            @if (IsLoading)
+            {
+                <div class="d-flex justify-content-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading workflows...</span>
+                    </div>
+                </div>
+                <p class="text-center small text-muted mt-2">Loading workflows...</p>
+            }
+            else if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger p-2 small" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    @ErrorMessage
+                </div>
+            }
+            else if (!WorkflowsWithRuns.Any())
+            {
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                    <small>No workflows found</small>
+                </div>
+            }
+            else
+            {
+                <div class="workflow-list">
+                    @foreach (var workflowWithRun in WorkflowsWithRuns)
+                    {
+                        <WorkflowCard WorkflowWithRun="workflowWithRun"
+                                     Repository="Repository"
+                                     class="mb-2" />
+                    }
+                </div>
+            }
+        </div>
+
+        @if (!IsLoading && WorkflowsWithRuns.Any())
+        {
+            <div class="card-footer bg-light p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        @WorkflowsWithRuns.Count workflow@(WorkflowsWithRuns.Count != 1 ? "s" : "")
+                    </small>
+                    <small class="text-muted">
+                        Last updated: @GetLastUpdatedText()
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Repository Repository { get; set; } = null!;
+
+    [Parameter]
+    public List<WorkflowWithLatestRun> WorkflowsWithRuns { get; set; } = [];
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    private string GetLastUpdatedText()
+    {
+        if (!WorkflowsWithRuns.Any())
+            return "Never";
+
+        var latestRun = WorkflowsWithRuns
+            .Where(w => w.LatestRun != null)
+            .OrderByDescending(w => w.LatestRun!.CreatedAt)
+            .FirstOrDefault()?.LatestRun;
+
+        if (latestRun == null)
+            return "No runs";
+
+        var timeAgo = DateTimeOffset.UtcNow - latestRun.CreatedAt;
+
+        switch (timeAgo.TotalMinutes)
+        {
+            case < 1:
+                return "Just now";
+            case < 60:
+                return $"{(int)timeAgo.TotalMinutes}m ago";
+            case < 1440:
+                return $"{(int)timeAgo.TotalHours}h ago";
+            default:
+                return $"{(int)timeAgo.TotalDays}d ago";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(RepositoryColumn), nameof(OnParametersSet));
+
+        Logger.LogDebug("Repository column updated for {Repository} with {WorkflowCount} workflows",
+            Repository.Name, WorkflowsWithRuns.Count);
+    }
+}

@@ -1,0 +1,424 @@
+@using DataRepositoryType = GitActDashNet.Data.RepositoryType
+@inject GitHubService GitHubService
+@inject LocalStorageService LocalStorageService
+@inject ILogger<FilterPanel> Logger
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="filterPanel" aria-labelledby="filterPanelLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="filterPanelLabel">
+            <i class="bi bi-funnel me-2"></i>
+            Repository Filter
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    <div class="offcanvas-body">
+        @if (IsLoading)
+        {
+            <div class="d-flex justify-content-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading repositories...</span>
+                </div>
+            </div>
+            <p class="text-center mt-2">Loading repositories...</p>
+        }
+        else if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @ErrorMessage
+            </div>
+            <button class="btn btn-outline-primary" @onclick="LoadRepositoriesAsync">
+                <i class="bi bi-arrow-clockwise me-2"></i>
+                Retry
+            </button>
+        }
+        else
+        {
+            <!-- Search Input -->
+            <div class="mb-3">
+                <label for="searchInput" class="form-label">Search Repositories</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           class="form-control"
+                           id="searchInput"
+                           placeholder="Type to search..."
+                           @bind="searchText"
+                           @bind:event="oninput" />
+                    @if (!string.IsNullOrEmpty(searchText))
+                    {
+                        <button class="btn btn-outline-secondary"
+                                type="button"
+                                @onclick="ClearSearch">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Type Filter Buttons -->
+            <div class="mb-3">
+                <label class="form-label">Repository Type</label>
+                <div class="btn-group d-flex" role="group" aria-label="Repository type filter">
+                    <input type="radio"
+                           class="btn-check"
+                           name="typeFilter"
+                           id="typeAll"
+                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.All))"
+                           checked="@(filterType == DataRepositoryType.All)">
+                    <label class="btn btn-outline-primary" for="typeAll">
+                        All (@AllRepositories.Count)
+                    </label>
+
+                    <input type="radio"
+                           class="btn-check"
+                           name="typeFilter"
+                           id="typePersonal"
+                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Personal))"
+                           checked="@(filterType == DataRepositoryType.Personal)">
+                    <label class="btn btn-outline-primary" for="typePersonal">
+                        Personal (@PersonalRepositories.Count)
+                    </label>
+
+                    <input type="radio"
+                           class="btn-check"
+                           name="typeFilter"
+                           id="typeOrganization"
+                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Organization))"
+                           checked="@(filterType == DataRepositoryType.Organization)">
+                    <label class="btn btn-outline-primary" for="typeOrganization">
+                        Org (@OrganizationRepositories.Count)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Sort Options -->
+            <div class="mb-3">
+                <label class="form-label">Sort By</label>
+                <div class="row g-2">
+                    <div class="col-8">
+                        <select class="form-select" @onchange="OnSortByChanged">
+                            <option value="@RepositorySortBy.Name" selected="@(sortBy == RepositorySortBy.Name)">
+                                Name
+                            </option>
+                            <option value="@RepositorySortBy.UpdatedAt" selected="@(sortBy == RepositorySortBy.UpdatedAt)">
+                                Last Updated
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-secondary w-100"
+                                @onclick="ToggleSortDirection">
+                            <i class="bi @(sortAscending ? "bi-sort-alpha-down" : "bi-sort-alpha-up")"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selection Summary -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-secondary">
+                        @SelectedRepositoryIds.Count selected
+                    </span>
+                    @if (SelectedRepositoryIds.Count > 0)
+                    {
+                        <button class="btn btn-sm btn-outline-warning" @onclick="ClearAllSelections">
+                            Clear All
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Repository List -->
+            <div class="repository-list" style="max-height: 400px; overflow-y: auto;">
+                @if (!FilteredRepositories.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                        No repositories found
+                    </div>
+                }
+                else
+                {
+                    @foreach (var repository in FilteredRepositories)
+                    {
+                        <div class="form-check mb-2 p-2 border rounded repository-item @(SelectedRepositoryIds.Contains(repository.Id) ? "bg-light" : "")">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="repo-@repository.Id"
+                                   checked="@SelectedRepositoryIds.Contains(repository.Id)"
+                                   @onchange="@(async (e) => await OnRepositorySelectionChanged(repository.Id, (bool)e.Value!))" />
+                            <label class="form-check-label w-100" for="repo-@repository.Id">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold text-truncate">
+                                            @repository.Name
+                                        </div>
+                                        <div class="small text-muted">
+                                            @repository.Owner.Login
+                                            @if (repository.Owner.Type == AccountType.Organization)
+                                            {
+                                                <span class="badge badge-sm bg-info ms-1">ORG</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(repository.Description))
+                                        {
+                                            <div class="small text-muted text-truncate mt-1" title="@repository.Description">
+                                                @repository.Description
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="small text-muted">
+                                            @repository.UpdatedAt.ToString("MMM dd")
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
+
+    <div class="offcanvas-footer border-top p-3">
+        <button class="btn btn-primary w-100"
+                data-bs-dismiss="offcanvas"
+                disabled="@(SelectedRepositoryIds.Count == 0)">
+            <i class="bi bi-check2 me-2"></i>
+            Apply Selection (@SelectedRepositoryIds.Count)
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<HashSet<long>> OnSelectionChanged { get; set; }
+
+    private bool IsLoading { get; set; } = true;
+    private string? ErrorMessage { get; set; }
+    private List<Repository> AllRepositories { get; set; } = [];
+    private HashSet<long> SelectedRepositoryIds { get; set; } = [];
+
+    // Filter properties
+    private string searchText = string.Empty;
+    private DataRepositoryType filterType = DataRepositoryType.All;
+    private RepositorySortBy sortBy = RepositorySortBy.Name;
+    private bool sortAscending = true;
+
+    private const string SELECTED_REPOSITORIES_KEY = "gitactdash-selected-repositories";
+
+    private List<Repository> PersonalRepositories
+        => AllRepositories.Where(r => r.Owner.Type == AccountType.User).ToList();
+
+    private List<Repository> OrganizationRepositories
+        => AllRepositories.Where(r => r.Owner.Type == AccountType.Organization).ToList();
+
+    private List<Repository> FilteredRepositories
+    {
+        get
+        {
+            var repositories = filterType switch
+            {
+                DataRepositoryType.Personal => PersonalRepositories,
+                DataRepositoryType.Organization => OrganizationRepositories,
+                _ => AllRepositories
+            };
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var search = searchText.Trim().ToLowerInvariant();
+                repositories = repositories.Where(r =>
+                    r.Name.ToLowerInvariant().Contains(search) ||
+                    r.Owner.Login.ToLowerInvariant().Contains(search) ||
+                    (!string.IsNullOrEmpty(r.Description) && r.Description.ToLowerInvariant().Contains(search))
+                ).ToList();
+            }
+
+            repositories = sortBy switch
+            {
+                RepositorySortBy.Name => sortAscending
+                    ? repositories.OrderBy(r => r.Name).ToList()
+                    : repositories.OrderByDescending(r => r.Name).ToList(),
+                RepositorySortBy.UpdatedAt => sortAscending
+                    ? repositories.OrderBy(r => r.UpdatedAt).ToList()
+                    : repositories.OrderByDescending(r => r.UpdatedAt).ToList(),
+                _ => repositories
+            };
+
+            return repositories;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRepositoriesAsync().ConfigureAwait(false);
+        await LoadSelectedRepositoriesAsync().ConfigureAwait(false);
+    }
+
+    private async Task LoadRepositoriesAsync()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(LoadRepositoriesAsync));
+
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await GitHubService.GetUserRepositoriesAsync().ConfigureAwait(false);
+
+            await InvokeAsync(() =>
+            {
+                if (result.IsSuccess)
+                {
+                    AllRepositories = result.Value!.ToList();
+                    Logger.LogInformation("Successfully loaded {Count} repositories", AllRepositories.Count);
+
+                    // Auto-select first 5 repositories if none are selected
+                    if (SelectedRepositoryIds.Count == 0 && AllRepositories.Count > 0)
+                    {
+                        var initialSelection = AllRepositories.Take(5).Select(r => r.Id).ToHashSet();
+                        SelectedRepositoryIds = initialSelection;
+                        Logger.LogInformation("Auto-selected first {Count} repositories", initialSelection.Count);
+
+                        // Notify parent component about the selection
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(100); // Small delay to ensure UI is updated
+                            await InvokeAsync(async () =>
+                            {
+                                await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds);
+                                await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+                            });
+                        });
+                    }
+                }
+                else
+                {
+                    ErrorMessage = result.ErrorMessage;
+                    Logger.LogWarning("Failed to load repositories: {Error}", result.ErrorMessage);
+                }
+
+                IsLoading = false;
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() =>
+            {
+                ErrorMessage = "An unexpected error occurred while loading repositories.";
+                IsLoading = false;
+                Logger.LogError(ex, "Unexpected error loading repositories");
+                StateHasChanged();
+            });
+        }
+    }
+
+    private async Task LoadSelectedRepositoriesAsync()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(LoadSelectedRepositoriesAsync));
+
+        try
+        {
+            var result = await LocalStorageService.GetItemAsync<long[]>(SELECTED_REPOSITORIES_KEY).ConfigureAwait(false);
+
+            await InvokeAsync(() =>
+            {
+                if (result is { IsSuccess: true, Value: not null })
+                {
+                    SelectedRepositoryIds = [..result.Value];
+                    Logger.LogDebug("Loaded {Count} selected repositories from localStorage", SelectedRepositoryIds.Count);
+                }
+                else
+                {
+                    Logger.LogDebug("No selected repositories found in localStorage or error occurred: {Error}", result.ErrorMessage);
+                }
+
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error loading selected repositories from localStorage");
+        }
+    }
+
+    private async Task SaveSelectedRepositoriesAsync()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(SaveSelectedRepositoriesAsync));
+
+        try
+        {
+            var repositoryIds = SelectedRepositoryIds.ToArray();
+            var result = await LocalStorageService.SetItemAsync(SELECTED_REPOSITORIES_KEY, repositoryIds).ConfigureAwait(false);
+
+            if (result.IsSuccess)
+                Logger.LogDebug("Successfully saved {Count} selected repositories to localStorage", repositoryIds.Length);
+            else
+                Logger.LogWarning("Failed to save selected repositories to localStorage: {Error}", result.ErrorMessage);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error saving selected repositories to localStorage");
+        }
+    }
+
+    private async Task OnRepositorySelectionChanged(long repositoryId, bool isSelected)
+    {
+        if (isSelected)
+            SelectedRepositoryIds.Add(repositoryId);
+        else
+            SelectedRepositoryIds.Remove(repositoryId);
+
+        await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+        await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds).ConfigureAwait(false);
+        StateHasChanged();
+    }
+
+    private async Task ClearAllSelections()
+    {
+        SelectedRepositoryIds.Clear();
+        await SaveSelectedRepositoriesAsync().ConfigureAwait(false);
+        await OnSelectionChanged.InvokeAsync(SelectedRepositoryIds).ConfigureAwait(false);
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        searchText = string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnTypeFilterChanged(DataRepositoryType type)
+    {
+        filterType = type;
+        StateHasChanged();
+    }
+
+    private void OnSortByChanged(ChangeEventArgs e)
+    {
+        if (!Enum.TryParse<RepositorySortBy>(e.Value?.ToString(), out var newSortBy))
+            return;
+
+        sortBy = newSortBy;
+        StateHasChanged();
+    }
+
+    private void ToggleSortDirection()
+    {
+        sortAscending = !sortAscending;
+        StateHasChanged();
+    }
+
+    public HashSet<long> GetSelectedRepositoryIds()
+        => [..SelectedRepositoryIds];
+
+    public async Task RefreshRepositoriesAsync()
+        => await LoadRepositoriesAsync().ConfigureAwait(false);
+}

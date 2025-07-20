@@ -58,3 +58,193 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* GitActDash Custom Styles */
+
+/* Dashboard Styles */
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.repository-grid {
+    min-height: 400px;
+}
+
+/* Filter Panel Styles */
+.repository-list {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bs-body-bg);
+}
+
+.repository-item {
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.repository-item:hover {
+    background-color: var(--bs-light) !important;
+}
+
+[data-bs-theme="dark"] .repository-item:hover {
+    background-color: var(--bs-dark) !important;
+}
+
+.repository-item .form-check-input {
+    margin-top: 0.125rem;
+}
+
+.repository-item .form-check-label {
+    cursor: pointer;
+}
+
+/* Repository Column Styles */
+.repository-column {
+    height: 100%;
+}
+
+.repository-column .card {
+    min-height: 300px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.repository-column .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.repository-column .card-header {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0d47a1) 100%);
+    border-bottom: none;
+}
+
+.repository-column .workflow-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Workflow Card Styles */
+.workflow-card {
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.workflow-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-card .card-body {
+    padding: 0.75rem;
+}
+
+.workflow-status-indicator {
+    flex-shrink: 0;
+}
+
+.workflow-status-indicator .bi {
+    font-size: 1.1rem;
+}
+
+.workflow-details {
+    font-size: 0.875rem;
+}
+
+/* Status Colors */
+.border-success {
+    border-color: var(--bs-success) !important;
+}
+
+.border-danger {
+    border-color: var(--bs-danger) !important;
+}
+
+.border-warning {
+    border-color: var(--bs-warning) !important;
+}
+
+.border-primary {
+    border-color: var(--bs-primary) !important;
+}
+
+.border-secondary {
+    border-color: var(--bs-secondary) !important;
+}
+
+/* Loading Animations */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.bi-arrow-clockwise {
+    animation: spin 2s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 0.5rem;
+    }
+    
+    .repository-column .card {
+        min-height: 200px;
+    }
+    
+    .offcanvas-body {
+        padding: 1rem;
+    }
+}
+
+/* Dark Mode Enhancements */
+[data-bs-theme="dark"] {
+    --bs-primary-dark: #1565c0;
+}
+
+[data-bs-theme="dark"] .repository-column .card-header {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark) 100%);
+}
+
+[data-bs-theme="dark"] .workflow-card:hover {
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .repository-column .card:hover {
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.12);
+}
+
+/* Bootstrap Icons Enhancements */
+.bi {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Custom Scrollbar */
+.repository-list::-webkit-scrollbar,
+.workflow-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.repository-list::-webkit-scrollbar-track,
+.workflow-list::-webkit-scrollbar-track {
+    background: var(--bs-light);
+    border-radius: 3px;
+}
+
+.repository-list::-webkit-scrollbar-thumb,
+.workflow-list::-webkit-scrollbar-thumb {
+    background: var(--bs-secondary);
+    border-radius: 3px;
+}
+
+[data-bs-theme="dark"] .repository-list::-webkit-scrollbar-track,
+[data-bs-theme="dark"] .workflow-list::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+}
+
+[data-bs-theme="dark"] .repository-list::-webkit-scrollbar-thumb,
+[data-bs-theme="dark"] .workflow-list::-webkit-scrollbar-thumb {
+    background: var(--bs-light);
+}

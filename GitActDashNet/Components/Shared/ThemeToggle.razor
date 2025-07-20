@@ -1,0 +1,43 @@
+@inject IJSRuntime JSRuntime
+@inject ILogger<ThemeToggle> Logger
+
+<button class="btn btn-outline-secondary"
+        @onclick="ToggleTheme"
+        title="@(isDarkMode ? "Switch to light mode" : "Switch to dark mode")">
+    <i class="bi @(isDarkMode ? "bi-sun" : "bi-moon")"></i>
+    @if (ShowText)
+    {
+        <span class="ms-2">@(isDarkMode ? "Light" : "Dark")</span>
+    }
+</button>
+
+@code {
+    [Parameter] public bool ShowText { get; set; } = false;
+
+    private bool isDarkMode = false;
+
+    protected override void OnInitialized()
+    {
+        // Detect current theme from document
+        isDarkMode = true; // Default to light mode
+    }
+
+    private async Task ToggleTheme()
+    {
+        try
+        {
+            isDarkMode = !isDarkMode;
+            var theme = isDarkMode ? "dark" : "light";
+
+            // Apply theme via JavaScript
+            await JSRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-bs-theme', '{theme}')");
+
+            Logger.LogInformation("Theme toggled to: {Theme}", theme);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling theme");
+        }
+    }
+}

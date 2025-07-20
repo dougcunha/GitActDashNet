@@ -1,8 +1,232 @@
 @page "/dashboard"
+@rendermode InteractiveServer
 @attribute [Authorize]
+@inject GitHubService GitHubService
+@inject ILogger<Dashboard> Logger
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Dashboard - GitActDash</PageTitle>
 
-<h1>Dashboard</h1>
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-speedometer2 me-2"></i>
+                GitHub Actions Dashboard
+            </h1>
+            <p class="text-muted mb-0">Monitor your workflows across multiple repositories</p>
+        </div>
 
-<p>Welcome to your dashboard. You are logged in!</p>
+        <div class="d-flex gap-2">
+            <!-- Theme Toggle -->
+            <ThemeToggle />
+
+            <!-- Refresh Controls -->
+            <RefreshControls OnRefresh="RefreshWorkflows" IsRefreshing="_isLoadingWorkflows" />
+
+            <!-- Filter Panel Button -->
+            <button class="btn btn-outline-primary"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#filterPanel"
+                    aria-controls="filterPanel">
+                <i class="bi bi-funnel me-2"></i>
+                Filter Repositories
+                @if (_selectedRepositoryIds.Count > 0)
+                {
+                    <span class="badge bg-primary ms-2">@_selectedRepositoryIds.Count</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    @if (_selectedRepositoryIds.Count == 0)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-folder-plus display-1 text-muted d-block mb-3"></i>
+            <h4 class="text-muted">No Repositories Selected</h4>
+            <p class="text-muted mb-3">
+                Start by selecting repositories to monitor their GitHub Actions workflows.
+            </p>
+            <button class="btn btn-primary"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#filterPanel"
+                    aria-controls="filterPanel">
+                <i class="bi bi-funnel me-2"></i>
+                Select Repositories
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Repository Columns -->
+        <div class="repository-grid">
+            <div class="row g-3">
+                @foreach (var repositoryData in _repositoryWorkflows)
+                {
+                    <div class="col-lg-4 col-md-6 col-12">
+                        <RepositoryColumn Repository="repositoryData.Repository"
+                                        WorkflowsWithRuns="repositoryData.WorkflowsWithRuns"
+                                        IsLoading="repositoryData.IsLoading"
+                                        ErrorMessage="repositoryData.ErrorMessage" />
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Filter Panel Component -->
+<FilterPanel OnSelectionChanged="OnRepositorySelectionChanged" @ref="_filterPanel" />
+
+@code {
+    private FilterPanel _filterPanel = null!;
+    private HashSet<long> _selectedRepositoryIds = [];
+    private List<RepositoryWorkflowData> _repositoryWorkflows = [];
+    private bool _isLoadingWorkflows;
+
+    private sealed record RepositoryWorkflowData
+    (
+        Repository Repository,
+        List<WorkflowWithLatestRun> WorkflowsWithRuns,
+        bool IsLoading,
+        string? ErrorMessage
+    );
+
+    protected override void OnInitialized()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Dashboard), nameof(OnInitialized));
+        Logger.LogInformation("Dashboard component initialized");
+    }
+
+    private Task OnRepositorySelectionChanged(HashSet<long> newSelectedIds)
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Dashboard), nameof(OnRepositorySelectionChanged));
+
+        _selectedRepositoryIds = newSelectedIds;
+        Logger.LogInformation("Repository selection changed: {Count} repositories selected", _selectedRepositoryIds.Count);
+
+        return LoadWorkflowsForSelectedRepositories();
+    }
+
+    private async Task LoadWorkflowsForSelectedRepositories()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Dashboard), nameof(LoadWorkflowsForSelectedRepositories));
+
+        Logger.LogInformation("Loading workflows for {Count} selected repositories", _selectedRepositoryIds.Count);
+
+        if (_selectedRepositoryIds.Count == 0)
+        {
+            _repositoryWorkflows.Clear();
+            Logger.LogInformation("No repositories selected, clearing workflow list");
+
+            return;
+        }
+
+        // Get all repositories that match the selected IDs
+        var allRepositories = await GetSelectedRepositories().ConfigureAwait(false);
+        Logger.LogInformation("Found {Count} repositories matching selected IDs", allRepositories.Count);
+
+        // Initialize loading state for each selected repository
+        _repositoryWorkflows = allRepositories
+            .Select(repo => new RepositoryWorkflowData(repo, [], true, null))
+            .ToList();
+
+        Logger.LogInformation("Initialized {Count} repository workflow entries for loading", _repositoryWorkflows.Count);
+
+        await InvokeAsync(StateHasChanged);
+
+        // Load workflows for each repository in parallel
+        var tasks = _repositoryWorkflows.Select(async (repoData, index) =>
+        {
+            Logger.LogInformation("Starting workflow load for repository: {RepositoryName} (index {Index})", repoData.Repository.Name, index);
+
+            try
+            {
+                var result = await GitHubService.GetWorkflowsWithLatestRunsAsync(repoData.Repository).ConfigureAwait(false);
+
+                Logger.LogInformation("Workflow load result for {RepositoryName}: Success={IsSuccess}, Count={Count}",
+                    repoData.Repository.Name, result.IsSuccess, result.IsSuccess ? result.Value?.Count : 0);
+
+                await InvokeAsync(() =>
+                {
+                    if (index >= _repositoryWorkflows.Count)
+                        return;
+
+                    _repositoryWorkflows[index] = result.IsSuccess
+                        ? repoData with { WorkflowsWithRuns = result.Value!.ToList(), IsLoading = false }
+                        : repoData with { IsLoading = false, ErrorMessage = result.ErrorMessage };
+
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading workflows for repository {Repository}", repoData.Repository.Name);
+
+                await InvokeAsync(() =>
+                {
+                    if (index >= _repositoryWorkflows.Count)
+                        return;
+
+                    _repositoryWorkflows[index] = repoData with
+                    {
+                        IsLoading = false,
+                        ErrorMessage = "An unexpected error occurred while loading workflows."
+                    };
+
+                    StateHasChanged();
+                });
+            }
+        });
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    private async Task<List<Repository>> GetSelectedRepositories()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Dashboard), nameof(GetSelectedRepositories));
+
+        try
+        {
+            var result = await GitHubService.GetUserRepositoriesAsync().ConfigureAwait(false);
+
+            if (result.IsSuccess)
+                return result.Value!.Where(repo => _selectedRepositoryIds.Contains(repo.Id)).ToList();
+
+            Logger.LogWarning("Failed to get repositories: {Error}", result.ErrorMessage);
+
+            return [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error getting selected repositories");
+            return [];
+        }
+    }
+
+    private async Task RefreshWorkflows()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(Dashboard), nameof(RefreshWorkflows));
+
+        _isLoadingWorkflows = true;
+        StateHasChanged();
+
+        try
+        {
+            await LoadWorkflowsForSelectedRepositories().ConfigureAwait(false);
+            Logger.LogInformation("Workflows refreshed successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing workflows");
+        }
+        finally
+        {
+            _isLoadingWorkflows = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

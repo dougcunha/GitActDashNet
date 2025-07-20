@@ -1,0 +1,254 @@
+@inject IJSRuntime JSRuntime
+@inject ILogger<WorkflowCard> Logger
+
+<div class="workflow-card card border @GetStatusBorderClass()" @attributes="AdditionalAttributes">
+    <div class="card-body p-2"
+         style="cursor: pointer;"
+         @onclick="OpenWorkflowInGitHub">
+
+        <div class="d-flex align-items-center mb-1">
+            <div class="workflow-status-indicator me-2">
+                <i class="bi @GetStatusIcon() @GetStatusTextClass()"></i>
+            </div>
+            <h6 class="mb-0 text-truncate flex-grow-1" title="@WorkflowWithRun.WorkflowName">
+                @WorkflowWithRun.WorkflowName
+            </h6>
+        </div>
+
+        <div class="workflow-details">
+            @if (WorkflowWithRun.LatestRun != null)
+            {
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge @GetStatusBadgeClass() small">
+                        @GetStatusDisplayText()
+                    </span>
+                    <small class="text-muted">
+                        @GetTimeAgoText(WorkflowWithRun.LatestRun.CreatedAt)
+                    </small>
+                </div>
+
+                @if (!string.IsNullOrEmpty(WorkflowWithRun.LatestRun.HeadCommit?.Message))
+                {
+                    <div class="mt-1">
+                        <small class="text-muted text-truncate d-block"
+                               title="@WorkflowWithRun.LatestRun.HeadCommit.Message">
+                            @WorkflowWithRun.LatestRun.HeadCommit.Message.Split('\n')[0]
+                        </small>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(WorkflowWithRun.LatestRun.HeadBranch))
+                {
+                    <div class="mt-1">
+                        <small class="text-muted">
+                            <i class="bi bi-git me-1"></i>
+                            @WorkflowWithRun.LatestRun.HeadBranch
+                        </small>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-1">
+                    <small class="text-muted">
+                        <i class="bi bi-dash-circle me-1"></i>
+                        No runs yet
+                    </small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public WorkflowWithLatestRun WorkflowWithRun { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Repository Repository { get; set; } = null!;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task OpenWorkflowInGitHub()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(WorkflowCard), nameof(OpenWorkflowInGitHub));
+
+        try
+        {
+            var url = $"https://github.com/{Repository.Owner.Login}/{Repository.Name}/actions/workflows/{WorkflowWithRun.WorkflowId}";
+            await JSRuntime.InvokeVoidAsync("gitActDashInterop.openInNewTab", url).ConfigureAwait(false);
+
+            Logger.LogDebug("Opened workflow {WorkflowName} in GitHub for repository {Repository}",
+                WorkflowWithRun.WorkflowName, Repository.Name);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to open workflow {WorkflowName} in GitHub", WorkflowWithRun.WorkflowName);
+        }
+    }
+
+    private string GetStatusBorderClass()
+    {
+        if (WorkflowWithRun.LatestRun?.Status == null)
+            return "border-light";
+
+        var status = WorkflowWithRun.LatestRun.Status.Value;
+        var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
+
+        if (status == WorkflowRunStatus.Completed)
+        {
+            return conclusion switch
+            {
+                WorkflowRunConclusion.Success => "border-success",
+                WorkflowRunConclusion.Failure => "border-danger",
+                WorkflowRunConclusion.Cancelled => "border-warning",
+                _ => "border-light"
+            };
+        }
+
+        return status switch
+        {
+            WorkflowRunStatus.InProgress => "border-primary",
+            WorkflowRunStatus.Queued => "border-secondary",
+            _ => "border-light"
+        };
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (WorkflowWithRun.LatestRun?.Status == null)
+            return "bg-light text-dark";
+
+        var status = WorkflowWithRun.LatestRun.Status.Value;
+        var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
+
+        if (status == WorkflowRunStatus.Completed)
+        {
+            return conclusion switch
+            {
+                WorkflowRunConclusion.Success => "bg-success",
+                WorkflowRunConclusion.Failure => "bg-danger",
+                WorkflowRunConclusion.Cancelled => "bg-warning",
+                _ => "bg-light text-dark"
+            };
+        }
+
+        return status switch
+        {
+            WorkflowRunStatus.InProgress => "bg-primary",
+            WorkflowRunStatus.Queued => "bg-secondary",
+            _ => "bg-light text-dark"
+        };
+    }
+
+    private string GetStatusTextClass()
+    {
+        if (WorkflowWithRun.LatestRun?.Status == null)
+            return "text-muted";
+
+        var status = WorkflowWithRun.LatestRun.Status.Value;
+        var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
+
+        if (status == WorkflowRunStatus.Completed)
+        {
+            return conclusion switch
+            {
+                WorkflowRunConclusion.Success => "text-success",
+                WorkflowRunConclusion.Failure => "text-danger",
+                WorkflowRunConclusion.Cancelled => "text-warning",
+                _ => "text-muted"
+            };
+        }
+
+        return status switch
+        {
+            WorkflowRunStatus.InProgress => "text-primary",
+            WorkflowRunStatus.Queued => "text-secondary",
+            _ => "text-muted"
+        };
+    }
+
+    private string GetStatusIcon()
+    {
+        if (WorkflowWithRun.LatestRun?.Status == null)
+            return "bi-question-circle";
+
+        var status = WorkflowWithRun.LatestRun.Status.Value;
+        var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
+
+        if (status == WorkflowRunStatus.Completed)
+        {
+            return conclusion switch
+            {
+                WorkflowRunConclusion.Success => "bi-check-circle-fill",
+                WorkflowRunConclusion.Failure => "bi-x-circle-fill",
+                WorkflowRunConclusion.Cancelled => "bi-exclamation-triangle-fill",
+                _ => "bi-question-circle"
+            };
+        }
+
+        return status switch
+        {
+            WorkflowRunStatus.InProgress => "bi-arrow-clockwise",
+            WorkflowRunStatus.Queued => "bi-clock-fill",
+            _ => "bi-question-circle"
+        };
+    }
+
+    private string GetStatusDisplayText()
+    {
+        if (WorkflowWithRun.LatestRun?.Status == null)
+            return "Unknown";
+
+        var status = WorkflowWithRun.LatestRun.Status.Value;
+        var conclusion = WorkflowWithRun.LatestRun.Conclusion?.Value;
+
+        if (status == WorkflowRunStatus.Completed)
+        {
+            return conclusion switch
+            {
+                WorkflowRunConclusion.Success => "Success",
+                WorkflowRunConclusion.Failure => "Failed",
+                WorkflowRunConclusion.Cancelled => "Cancelled",
+                WorkflowRunConclusion.Skipped => "Skipped",
+                WorkflowRunConclusion.TimedOut => "Timed Out",
+                _ => "Completed"
+            };
+        }
+
+        return status switch
+        {
+            WorkflowRunStatus.InProgress => "Running",
+            WorkflowRunStatus.Queued => "Queued",
+            WorkflowRunStatus.Requested => "Requested",
+            WorkflowRunStatus.Waiting => "Waiting",
+            _ => "Unknown"
+        };
+    }
+
+    private static string GetTimeAgoText(DateTimeOffset createdAt)
+    {
+        var timeAgo = DateTimeOffset.UtcNow - createdAt;
+
+        switch (timeAgo.TotalMinutes)
+        {
+            case < 1:
+                return "Just now";
+            case < 60:
+                return $"{(int)timeAgo.TotalMinutes}m ago";
+            case < 1440:
+                return $"{(int)timeAgo.TotalHours}h ago";
+            default:
+                return $"{(int)timeAgo.TotalDays}d ago";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(WorkflowCard), nameof(OnParametersSet));
+
+        Logger.LogDebug("Workflow card updated for {WorkflowName} in repository {Repository}",
+            WorkflowWithRun.WorkflowName, Repository.Name);
+    }
+}

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Serilog;
 using Serilog.Context;
 
 namespace GitActDashNet.Utils;
@@ -17,11 +15,14 @@ public static class LoggingExtensions
     /// <param name="repository">Optional repository context.</param>
     /// <param name="organization">Optional organization context.</param>
     /// <returns>A disposable logger context.</returns>
-    public static IDisposable ForGitHubOperation<T>(
+    public static IDisposable ForGitHubOperation<T>
+    (
+        // ReSharper disable once UnusedParameter.Global
         this ILogger<T> logger,
         string operation,
         string? repository = null,
-        string? organization = null)
+        string? organization = null
+    )
     {
         var context = LogContext.PushProperty("Operation", operation);
 
@@ -41,13 +42,17 @@ public static class LoggingExtensions
     /// <param name="serviceName">The name of the service.</param>
     /// <param name="operation">The operation being performed.</param>
     /// <returns>A disposable logger context.</returns>
-    public static IDisposable ForServiceOperation<T>(
+    public static IDisposable ForServiceOperation<T>
+    (
+        // ReSharper disable once UnusedParameter.Global
         this ILogger<T> logger,
         string serviceName,
-        string operation)
+        string operation
+    )
     {
         var serviceContext = LogContext.PushProperty("Service", serviceName);
         var operationContext = LogContext.PushProperty("Operation", operation);
+
         return new CompositeDisposable(serviceContext, operationContext);
     }
 
@@ -58,13 +63,17 @@ public static class LoggingExtensions
     /// <param name="componentName">The name of the component.</param>
     /// <param name="operation">The operation being performed.</param>
     /// <returns>A disposable logger context.</returns>
-    public static IDisposable ForComponentOperation<T>(
+    public static IDisposable ForComponentOperation<T>
+    (
+        // ReSharper disable once UnusedParameter.Global
         this ILogger<T> logger,
         string componentName,
-        string operation)
+        string operation
+    )
     {
         var componentContext = LogContext.PushProperty("Component", componentName);
         var operationContext = LogContext.PushProperty("Operation", operation);
+
         return new CompositeDisposable(componentContext, operationContext);
     }
 
@@ -75,9 +84,7 @@ public static class LoggingExtensions
     /// <param name="operation">The operation being timed.</param>
     /// <returns>A disposable that logs the execution time when disposed.</returns>
     public static IDisposable TimeOperation<T>(this ILogger<T> logger, string operation)
-    {
-        return new OperationTimer<T>(logger, operation);
-    }
+        => new OperationTimer<T>(logger, operation);
 }
 
 /// <summary>
@@ -89,9 +96,7 @@ internal sealed class CompositeDisposable : IDisposable
     private bool _disposed;
 
     public CompositeDisposable(params IDisposable[] disposables)
-    {
-        _disposables = disposables;
-    }
+        => _disposables = disposables;
 
     public void Dispose()
     {
@@ -99,9 +104,7 @@ internal sealed class CompositeDisposable : IDisposable
             return;
 
         foreach (var disposable in _disposables)
-        {
-            disposable?.Dispose();
-        }
+            disposable.Dispose();
 
         _disposed = true;
     }
@@ -122,7 +125,7 @@ internal sealed class OperationTimer<T> : IDisposable
         _logger = logger;
         _operation = operation;
         _startTime = DateTime.UtcNow;
-        
+
         _logger.LogDebug("Starting operation: {Operation}", _operation);
     }
 
@@ -132,7 +135,7 @@ internal sealed class OperationTimer<T> : IDisposable
             return;
 
         var duration = DateTime.UtcNow - _startTime;
-        _logger.LogInformation("Completed operation: {Operation} in {Duration}ms", 
+        _logger.LogInformation("Completed operation: {Operation} in {Duration}ms",
             _operation, duration.TotalMilliseconds);
 
         _disposed = true;

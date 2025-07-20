@@ -182,11 +182,8 @@ public sealed class GitHubService
         var workflowsWithRuns = new List<WorkflowWithLatestRun>();
         var warnings = new List<string>();
 
-        foreach (var workflow in workflowsResult.Value)
+        foreach (var workflow in workflowsResult.Value.TakeWhile(_ => !cancellationToken.IsCancellationRequested))
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
-
             var latestRunResult = await GetLatestWorkflowRunAsync
             (
                 repository.Owner.Login,
@@ -238,8 +235,10 @@ public sealed class GitHubService
     {
         if (cancellationToken.IsCancellationRequested)
             return OperationResult<WorkflowRun?>.Success(null);
+
         if (string.IsNullOrWhiteSpace(owner))
             return OperationResult<WorkflowRun?>.Failure("Repository owner cannot be null or empty.");
+
         if (string.IsNullOrWhiteSpace(repoName))
             return OperationResult<WorkflowRun?>.Failure("Repository name cannot be null or empty.");
 

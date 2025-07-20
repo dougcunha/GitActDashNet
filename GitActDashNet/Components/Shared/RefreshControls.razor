@@ -1,0 +1,199 @@
+@inject ILogger<RefreshControls> Logger
+@implements IDisposable
+
+<div class="refresh-controls">
+    <div class="d-flex align-items-center gap-2">
+        <!-- Auto Refresh Toggle -->
+        <div class="form-check form-switch">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="autoRefreshSwitch"
+                   checked="@isAutoRefreshEnabled"
+                   @onchange="OnAutoRefreshToggle">
+            <label class="form-check-label" for="autoRefreshSwitch">
+                Auto Refresh
+            </label>
+        </div>
+
+        <!-- Refresh Interval Selector -->
+        @if (isAutoRefreshEnabled)
+        {
+            <select class="form-select form-select-sm"
+                    style="width: auto;"
+                    value="@selectedInterval"
+                    @onchange="OnIntervalChanged">
+                @foreach (var option in refreshIntervals)
+                {
+                    <option value="@option.Seconds">@option.Label</option>
+                }
+            </select>
+        }
+
+        <!-- Manual Refresh Button -->
+        <button class="btn btn-outline-primary btn-sm"
+                @onclick="OnManualRefresh"
+                disabled="@IsRefreshing"
+                title="Refresh now">
+            @if (IsRefreshing)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                <i class="bi bi-arrow-clockwise me-2"></i>
+            }
+            Refresh
+        </button>
+
+        <!-- Countdown Display -->
+        @if (isAutoRefreshEnabled && !IsRefreshing)
+        {
+            <small class="text-muted">
+                Next: @GetCountdownText()
+            </small>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public bool IsRefreshing { get; set; }
+
+    private bool isAutoRefreshEnabled = false;
+    private int selectedInterval = 300; // 5 minutes default
+    private Timer? refreshTimer;
+    private int remainingSeconds = 0;
+
+    private readonly RefreshInterval[] refreshIntervals =
+    [
+        new(30, "30 seconds"),
+        new(60, "1 minute"),
+        new(300, "5 minutes"),
+        new(600, "10 minutes"),
+        new(900, "15 minutes"),
+        new(1800, "30 minutes")
+    ];
+
+    private sealed record RefreshInterval(int Seconds, string Label);
+
+    protected override void OnInitialized()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(RefreshControls), nameof(OnInitialized));
+        Logger.LogDebug("RefreshControls component initialized");
+    }
+
+    private async Task OnAutoRefreshToggle(ChangeEventArgs e)
+    {
+        using var _ = Logger.ForComponentOperation(nameof(RefreshControls), nameof(OnAutoRefreshToggle));
+
+        isAutoRefreshEnabled = (bool)e.Value!;
+
+        if (isAutoRefreshEnabled)
+        {
+            await StartAutoRefresh().ConfigureAwait(false);
+            Logger.LogInformation("Auto refresh enabled with interval: {Interval} seconds", selectedInterval);
+        }
+        else
+        {
+            StopAutoRefresh();
+            Logger.LogInformation("Auto refresh disabled");
+        }
+    }
+
+    private Task OnIntervalChanged(ChangeEventArgs e)
+    {
+        using var _ = Logger.ForComponentOperation(nameof(RefreshControls), nameof(OnIntervalChanged));
+
+        if (!int.TryParse(e.Value?.ToString(), out var newInterval))
+            return Task.CompletedTask;
+
+        selectedInterval = newInterval;
+        Logger.LogDebug("Refresh interval changed to: {Interval} seconds", selectedInterval);
+
+        return isAutoRefreshEnabled ? StartAutoRefresh() : Task.CompletedTask;
+    }
+
+    private async Task OnManualRefresh()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(RefreshControls), nameof(OnManualRefresh));
+
+        try
+        {
+            Logger.LogInformation("Manual refresh triggered");
+            await OnRefresh.InvokeAsync().ConfigureAwait(false);
+
+            // Reset countdown if auto refresh is enabled
+            if (isAutoRefreshEnabled)
+                await StartAutoRefresh().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during manual refresh");
+        }
+    }
+
+    private Task StartAutoRefresh()
+    {
+        StopAutoRefresh();
+
+        remainingSeconds = selectedInterval;
+
+        refreshTimer = new Timer(async void (_) =>
+        {
+            try
+            {
+                remainingSeconds--;
+
+                if (remainingSeconds <= 0)
+                {
+                    try
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            await OnRefresh.InvokeAsync().ConfigureAwait(false);
+                            remainingSeconds = selectedInterval;
+                            StateHasChanged();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error during auto refresh");
+                    }
+                }
+                else
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error in auto refresh timer callback");
+            }
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
+        return Task.CompletedTask;
+    }
+
+    private void StopAutoRefresh()
+    {
+        refreshTimer?.Dispose();
+        refreshTimer = null;
+        remainingSeconds = 0;
+    }
+
+    private string GetCountdownText()
+    {
+        if (remainingSeconds <= 0)
+            return "Now";
+
+        var minutes = remainingSeconds / 60;
+        var seconds = remainingSeconds % 60;
+
+        return minutes > 0
+            ? $"{minutes}m {seconds}s"
+            : $"{seconds}s";
+    }
+
+    public void Dispose()
+        => StopAutoRefresh();
+}
