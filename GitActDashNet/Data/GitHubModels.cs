@@ -46,6 +46,15 @@ public enum RepositorySortBy
 }
 
 /// <summary>
+/// Model for a GitHub organization.
+/// </summary>
+public sealed record Organization
+(
+    long Id,
+    string Login
+);
+
+/// <summary>
 /// Extensions for working with Octokit types
 /// </summary>
 public static class OctokitExtensions

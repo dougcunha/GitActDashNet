@@ -109,6 +109,63 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Gets all organizations for the current user.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+    /// <returns>An operation result containing a read-only list of organizations.</returns>
+    public async Task<OperationResult<IReadOnlyList<Data.Organization>>> GetUserOrganizationsAsync(CancellationToken cancellationToken = default)
+    {
+        using var _ = logger.ForServiceOperation(nameof(GitHubService), nameof(GetUserOrganizationsAsync));
+        using var timer = logger.TimeOperation("GetUserOrganizations");
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning("Operation was cancelled before starting");
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Success([]);
+        }
+
+        try
+        {
+            logger.LogInformation("Starting to fetch user organizations");
+            var octokitOrganizations = await gitHubClient.Organization.GetAllForCurrent().ConfigureAwait(false);
+            logger.LogDebug("Fetched {Count} organizations", octokitOrganizations.Count);
+
+            var organizations = octokitOrganizations
+                .Select(org => new Data.Organization(org.Id, org.Login))
+                .ToList();
+
+            logger.LogInformation("Successfully fetched {Count} organizations", organizations.Count);
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Success(organizations);
+        }
+        catch (RateLimitExceededException ex)
+        {
+            logger.LogWarning("GitHub API rate limit exceeded. Reset at: {ResetTime}", ex.Reset);
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Failure($"GitHub API rate limit exceeded. Reset at: {ex.Reset}");
+        }
+        catch (AuthorizationException ex)
+        {
+            logger.LogError(ex, "Authorization failed while fetching organizations");
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Failure("Authorization failed. Please check your GitHub access token.");
+        }
+        catch (ApiException ex)
+        {
+            logger.LogError(ex, "GitHub API error while fetching organizations: {StatusCode}", ex.HttpResponse?.StatusCode);
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Failure($"GitHub API error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error while fetching organizations");
+
+            return OperationResult<IReadOnlyList<Data.Organization>>.Failure($"Unexpected error while fetching organizations: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Gets all workflows for a given repository.
     /// </summary>
     /// <param name="owner">The owner of the repository.</param>

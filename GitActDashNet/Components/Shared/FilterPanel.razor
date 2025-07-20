@@ -1,4 +1,3 @@
-@using DataRepositoryType = GitActDashNet.Data.RepositoryType
 @inject GitHubService GitHubService
 @inject LocalStorageService LocalStorageService
 @inject ILogger<FilterPanel> Logger
@@ -59,40 +58,17 @@
                 </div>
             </div>
 
-            <!-- Type Filter Buttons -->
+            <!-- Organization Filter -->
             <div class="mb-3">
-                <label class="form-label">Repository Type</label>
-                <div class="btn-group d-flex" role="group" aria-label="Repository type filter">
-                    <input type="radio"
-                           class="btn-check"
-                           name="typeFilter"
-                           id="typeAll"
-                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.All))"
-                           checked="@(_filterType == DataRepositoryType.All)">
-                    <label class="btn btn-outline-primary" for="typeAll">
-                        All (@AllRepositories.Count)
-                    </label>
-
-                    <input type="radio"
-                           class="btn-check"
-                           name="typeFilter"
-                           id="typePersonal"
-                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Personal))"
-                           checked="@(_filterType == DataRepositoryType.Personal)">
-                    <label class="btn btn-outline-primary" for="typePersonal">
-                        Personal (@PersonalRepositories.Count)
-                    </label>
-
-                    <input type="radio"
-                           class="btn-check"
-                           name="typeFilter"
-                           id="typeOrganization"
-                           @onchange="@(() => OnTypeFilterChanged(DataRepositoryType.Organization))"
-                           checked="@(_filterType == DataRepositoryType.Organization)">
-                    <label class="btn btn-outline-primary" for="typeOrganization">
-                        Org (@OrganizationRepositories.Count)
-                    </label>
-                </div>
+                <label for="organizationSelect" class="form-label">Organization</label>
+                <select id="organizationSelect" class="form-select" @onchange="OnOrganizationFilterChanged">
+                    <option value="">All</option>
+                    <option value="personal">Personal</option>
+                    @foreach (var org in Organizations)
+                    {
+                        <option value="@org.Login">@org.Login</option>
+                    }
+                </select>
             </div>
 
             <!-- Sort Options -->
@@ -170,7 +146,7 @@
                                             </div>
                                             @if (!string.IsNullOrEmpty(repository.Description))
                                             {
-                                                <div class="small text-muted text-truncate mt-1" title="@repository.Description">
+                                                <div class="small text-muted mt-1" title="@repository.Description">
                                                     @repository.Description
                                                 </div>
                                             }
@@ -211,28 +187,31 @@
 
     // Filter properties
     private string _searchText = string.Empty;
-    private DataRepositoryType _filterType = DataRepositoryType.All;
     private RepositorySortBy _sortBy = RepositorySortBy.Name;
     private bool _sortAscending = true;
 
     private const string SELECTED_REPOSITORIES_KEY = "gitactdash-selected-repositories";
 
-    private List<Repository> PersonalRepositories
-        => AllRepositories.Where(r => r.Owner.Type == AccountType.User).ToList();
-
-    private List<Repository> OrganizationRepositories
-        => AllRepositories.Where(r => r.Owner.Type == AccountType.Organization).ToList();
+    private List<Data.Organization> Organizations { get; set; } = [];
+    private string? _selectedOrganization;
 
     private List<Repository> FilteredRepositories
     {
         get
         {
-            var repositories = _filterType switch
+            var repositories = AllRepositories;
+
+            if (!string.IsNullOrEmpty(_selectedOrganization))
             {
-                DataRepositoryType.Personal => PersonalRepositories,
-                DataRepositoryType.Organization => OrganizationRepositories,
-                var _ => AllRepositories
-            };
+                if (_selectedOrganization == "personal")
+                {
+                    repositories = repositories.Where(r => r.Owner.Type == AccountType.User).ToList();
+                }
+                else
+                {
+                    repositories = repositories.Where(r => r.Owner.Login == _selectedOrganization).ToList();
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(_searchText))
             {
@@ -264,6 +243,7 @@
     {
         // Only load repositories on initialization - localStorage will be loaded after render
         await LoadRepositoriesAsync().ConfigureAwait(false);
+        await LoadOrganizationsAsync().ConfigureAwait(false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -463,9 +443,9 @@
         StateHasChanged();
     }
 
-    private void OnTypeFilterChanged(DataRepositoryType type)
+    private void OnOrganizationFilterChanged(ChangeEventArgs e)
     {
-        _filterType = type;
+        _selectedOrganization = e.Value?.ToString();
         StateHasChanged();
     }
 
@@ -482,6 +462,25 @@
     {
         _sortAscending = !_sortAscending;
         StateHasChanged();
+    }
+
+    private async Task LoadOrganizationsAsync()
+    {
+        using var _ = Logger.ForComponentOperation(nameof(FilterPanel), nameof(LoadOrganizationsAsync));
+
+        var result = await GitHubService.GetUserOrganizationsAsync().ConfigureAwait(false);
+
+        if (result.IsSuccess)
+        {
+            Organizations = result.Value!.ToList();
+            Logger.LogInformation("Successfully loaded {Count} organizations", Organizations.Count);
+        }
+        else
+        {
+            Logger.LogWarning("Failed to load organizations: {Error}", result.ErrorMessage);
+        }
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
     }
 
     public HashSet<long> GetSelectedRepositoryIds()
