@@ -1,4 +1,3 @@
-using GitActDashNet.Components;
 using GitActDashNet.Extensions;
 using Serilog;
 
