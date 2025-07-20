@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Octokit;
 
 namespace GitActDashNet.Data;
@@ -6,7 +5,8 @@ namespace GitActDashNet.Data;
 /// <summary>
 /// Modelo combinado para uso na UI que combina dados do Octokit
 /// </summary>
-public sealed record WorkflowWithLatestRun(
+public sealed record WorkflowWithLatestRun
+(
     long WorkflowId,
     string WorkflowName,
     string WorkflowPath,
@@ -18,7 +18,8 @@ public sealed record WorkflowWithLatestRun(
 /// <summary>
 /// Modelo para filtros de repositório
 /// </summary>
-public sealed record RepositoryFilter(
+public sealed record RepositoryFilter
+(
     string SearchText = "",
     RepositoryType Type = RepositoryType.All,
     RepositorySortBy SortBy = RepositorySortBy.Name,
@@ -49,14 +50,11 @@ public enum RepositorySortBy
 /// </summary>
 public static class OctokitExtensions
 {
-
     /// <summary>
     /// Converte um WorkflowRun do Octokit para um status de exibição simplificado
     /// </summary>
     public static string GetDisplayStatus(this WorkflowRun workflowRun)
-    {
-
-        return workflowRun.Status.Value switch
+        => workflowRun.Status.Value switch
         {
             WorkflowRunStatus.Completed when workflowRun.Conclusion?.Value == WorkflowRunConclusion.Success => "success",
             WorkflowRunStatus.Completed when workflowRun.Conclusion?.Value == WorkflowRunConclusion.Failure => "failure",
@@ -65,16 +63,12 @@ public static class OctokitExtensions
             WorkflowRunStatus.Queued => "queued",
             _ => "unknown"
         };
-    }
 
     /// <summary>
     /// Determina se um repositório é pessoal ou de organização
     /// </summary>
     public static RepositoryType GetRepositoryType(this Repository repository)
-    {
-
-        return repository.Owner.Type == AccountType.Organization 
-            ? RepositoryType.Organization 
+        => repository.Owner.Type == AccountType.Organization
+            ? RepositoryType.Organization
             : RepositoryType.Personal;
-    }
 }

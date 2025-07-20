@@ -16,7 +16,7 @@ public static class LoggingExtensions
     /// <returns>The host builder for chaining.</returns>
     public static IHostBuilder ConfigureSerilog(this IHostBuilder hostBuilder, IConfiguration configuration)
     {
-        return hostBuilder.UseSerilog((context, services, loggerConfiguration) =>
+        return hostBuilder.UseSerilog((_, _, loggerConfiguration) =>
         {
             loggerConfiguration
                 .ReadFrom.Configuration(configuration)
@@ -40,13 +40,17 @@ public static class LoggingExtensions
             .Enrich.FromLogContext()
             .Enrich.WithEnvironmentName()
             .Enrich.WithMachineName()
-            .WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .WriteTo.File(
+            .WriteTo.Console
+            (
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}"
+            )
+            .WriteTo.File
+            (
                 path: "logs/gitactdash-.log",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}",
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 31,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj} {Properties:j}{NewLine}{Exception}")
+                retainedFileCountLimit: 31
+            )
             .CreateLogger();
     }
 }

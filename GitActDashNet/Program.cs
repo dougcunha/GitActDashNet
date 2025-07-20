@@ -7,13 +7,18 @@ Log.Logger = LoggingExtensions.CreateBootstrapLogger();
 try
 {
     Log.Information("Starting GitActDash application");
-
     var builder = WebApplication.CreateBuilder(args);
-
-    // Configure Serilog from configuration
     builder.Host.ConfigureSerilog(builder.Configuration);
 
-    // Configure services
+    // Configure URLs from appsettings
+    var urls = builder.Configuration["Urls"];
+
+    if (!string.IsNullOrEmpty(urls))
+    {
+        builder.WebHost.UseUrls(urls);
+        Log.Information("Using configured URLs: {Urls}", urls);
+    }
+
     builder.Services
         .AddBlazorServices()
         .AddGitHubAuthentication(builder.Configuration)
@@ -21,7 +26,6 @@ try
 
     var app = builder.Build();
 
-    // Configure pipeline and endpoints
     app.ConfigurePipeline()
         .ConfigureAuthenticationEndpoints();
 

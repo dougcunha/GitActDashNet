@@ -28,6 +28,7 @@ public static class WebApplicationExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapStaticAssets();
+
         app.MapRazorComponents<Components.App>()
             .AddInteractiveServerRenderMode();
 
@@ -45,11 +46,15 @@ public static class WebApplicationExtensions
         app.MapGet("/login", (string? returnUrl = "/")
             => Results.Challenge(new AuthenticationProperties { RedirectUri = returnUrl }, ["GitHub"]));
 
-        app.MapPost("/logout", async context =>
-        {
-            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            context.Response.Redirect("/");
-        });
+        app.MapPost
+        (
+            "/logout",
+            async context =>
+            {
+                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                context.Response.Redirect("/");
+            }
+        );
 
         return app;
     }

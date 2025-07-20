@@ -1,15 +1,17 @@
 using GitActDashNet.Data;
 using GitActDashNet.Utils;
-using Microsoft.Extensions.Logging;
 using Octokit;
-using Serilog;
 
 namespace GitActDashNet.Services;
 
 /// <summary>
 /// Service to interact with the GitHub API using Octokit.NET.
 /// </summary>
-public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubService> logger)
+public sealed class GitHubService
+(
+    IGitHubClient gitHubClient,
+    ILogger<GitHubService> logger
+)
 {
     /// <summary>
     /// Gets all repositories for the current user, including personal and organization repositories.
@@ -24,6 +26,7 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
         if (cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning("Operation was cancelled before starting");
+
             return OperationResult<IReadOnlyList<Repository>>.Success([]);
         }
 
@@ -44,39 +47,63 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
                 if (cancellationToken.IsCancellationRequested)
                 {
                     logger.LogWarning("Operation was cancelled while fetching organization repositories");
+
                     break;
                 }
 
-                using var orgContext = logger.ForGitHubOperation("GetOrgRepositories", organization: org.Login);
+                using var orgContext = logger.ForGitHubOperation
+                (
+                    "GetOrgRepositories",
+                    organization: org.Login
+                );
+
                 var orgRepos = await gitHubClient.Repository.GetAllForOrg(org.Login).ConfigureAwait(false);
                 allRepos.AddRange(orgRepos);
-                logger.LogDebug("Fetched {Count} repositories from organization {Organization}", orgRepos.Count, org.Login);
+
+                logger.LogDebug
+                (
+                    "Fetched {Count} repositories from organization {Organization}",
+                    orgRepos.Count,
+                    org.Login
+                );
             }
 
             var distinctRepos = allRepos.DistinctBy(r => r.Id).ToArray();
-            logger.LogInformation("Successfully fetched {TotalCount} repositories ({UniqueCount} unique)", 
-                allRepos.Count, distinctRepos.Length);
 
-            return OperationResult<IReadOnlyList<Repository>>.Success(distinctRepos);
+            logger.LogInformation
+            (
+                "Successfully fetched {TotalCount} repositories ({UniqueCount} unique)",
+                allRepos.Count,
+                distinctRepos.Length
+            );
+
+            return OperationResult<IReadOnlyList<Repository>>.Success
+            (
+                distinctRepos
+            );
         }
         catch (RateLimitExceededException ex)
         {
             logger.LogWarning("GitHub API rate limit exceeded. Reset at: {ResetTime}", ex.Reset);
+
             return OperationResult<IReadOnlyList<Repository>>.Failure($"GitHub API rate limit exceeded. Reset at: {ex.Reset}");
         }
         catch (AuthorizationException ex)
         {
             logger.LogError(ex, "Authorization failed while fetching repositories");
+
             return OperationResult<IReadOnlyList<Repository>>.Failure("Authorization failed. Please check your GitHub access token.");
         }
         catch (ApiException ex)
         {
             logger.LogError(ex, "GitHub API error while fetching repositories: {StatusCode}", ex.HttpResponse?.StatusCode);
+
             return OperationResult<IReadOnlyList<Repository>>.Failure($"GitHub API error: {ex.Message}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unexpected error while fetching repositories");
+
             return OperationResult<IReadOnlyList<Repository>>.Failure($"Unexpected error while fetching repositories: {ex.Message}");
         }
     }
@@ -88,7 +115,12 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
     /// <param name="repoName">The name of the repository.</param>
     /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>An operation result containing a read-only list of workflows.</returns>
-    public async Task<OperationResult<IReadOnlyList<Workflow>>> GetWorkflowsAsync(string owner, string repoName, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<IReadOnlyList<Workflow>>> GetWorkflowsAsync
+    (
+        string owner,
+        string repoName,
+        CancellationToken cancellationToken = default
+    )
     {
         if (cancellationToken.IsCancellationRequested)
             return OperationResult<IReadOnlyList<Workflow>>.Success([]);
@@ -133,9 +165,13 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
     /// <param name="repository">The repository to get workflows for.</param>
     /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>An operation result containing a read-only list of workflows with their latest run.</returns>
-    public async Task<OperationResult<IReadOnlyList<WorkflowWithLatestRun>>> GetWorkflowsWithLatestRunsAsync(Repository repository, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<IReadOnlyList<WorkflowWithLatestRun>>> GetWorkflowsWithLatestRunsAsync
+    (
+        Repository repository,
+        CancellationToken cancellationToken = default
+    )
     {
-        if (repository?.Owner?.Login is null)
+        if (repository.Owner?.Login is null)
             return OperationResult<IReadOnlyList<WorkflowWithLatestRun>>.Failure("Repository or repository owner cannot be null.");
 
         var workflowsResult = await GetWorkflowsAsync(repository.Owner.Login, repository.Name, cancellationToken).ConfigureAwait(false);
@@ -151,18 +187,20 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
             if (cancellationToken.IsCancellationRequested)
                 break;
 
-            var latestRunResult = await GetLatestWorkflowRunAsync(repository.Owner.Login, repository.Name, workflow.Id, cancellationToken).ConfigureAwait(false);
+            var latestRunResult = await GetLatestWorkflowRunAsync
+            (
+                repository.Owner.Login,
+                repository.Name,
+                workflow.Id,
+                cancellationToken
+            ).ConfigureAwait(false);
 
             WorkflowRun? latestRun = null;
 
             if (latestRunResult.IsFailure)
-            {
                 warnings.Add($"Failed to get latest run for workflow '{workflow.Name}': {latestRunResult.ErrorMessage}");
-            }
             else
-            {
                 latestRun = latestRunResult.Value;
-            }
 
             var workflowWithRun = new WorkflowWithLatestRun
             (
@@ -177,11 +215,9 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
             workflowsWithRuns.Add(workflowWithRun);
         }
 
-        var result = warnings.Count > 0
+        return warnings.Count > 0
             ? OperationResult<IReadOnlyList<WorkflowWithLatestRun>>.Warning(workflowsWithRuns, [.. warnings])
             : OperationResult<IReadOnlyList<WorkflowWithLatestRun>>.Success(workflowsWithRuns);
-
-        return result;
     }
 
     /// <summary>
@@ -192,14 +228,18 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
     /// <param name="workflowId">The ID of the workflow.</param>
     /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>An operation result containing the latest workflow run, or null if not found.</returns>
-    public async Task<OperationResult<WorkflowRun?>> GetLatestWorkflowRunAsync(string owner, string repoName, long workflowId, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<WorkflowRun?>> GetLatestWorkflowRunAsync
+    (
+        string owner,
+        string repoName,
+        long workflowId,
+        CancellationToken cancellationToken = default
+    )
     {
         if (cancellationToken.IsCancellationRequested)
             return OperationResult<WorkflowRun?>.Success(null);
-
         if (string.IsNullOrWhiteSpace(owner))
             return OperationResult<WorkflowRun?>.Failure("Repository owner cannot be null or empty.");
-
         if (string.IsNullOrWhiteSpace(repoName))
             return OperationResult<WorkflowRun?>.Failure("Repository name cannot be null or empty.");
 
@@ -216,7 +256,10 @@ public sealed class GitHubService(IGitHubClient gitHubClient, ILogger<GitHubServ
                 ? runs.WorkflowRuns[0]
                 : null;
 
-            return OperationResult<WorkflowRun?>.Success(latestRun);
+            return OperationResult<WorkflowRun?>.Success
+            (
+                latestRun
+            );
         }
         catch (NotFoundException)
         {

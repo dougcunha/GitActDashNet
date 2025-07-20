@@ -34,14 +34,20 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddGitHubAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAuthentication(options =>
+        services.AddAuthentication
+        (
+            options =>
             {
                 options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = "GitHub";
-            })
-            .AddCookie()
-            .AddGitHub("GitHub", options =>
+            }
+        )
+        .AddCookie()
+        .AddGitHub
+        (
+            "GitHub",
+            options =>
             {
                 options.ClientId = configuration["GitHub:ClientId"]!;
                 options.ClientSecret = configuration["GitHub:ClientSecret"]!;
@@ -53,7 +59,8 @@ public static class ServiceCollectionExtensions
                 options.Scope.Add("read:user");
 
                 options.SaveTokens = true;
-            });
+            }
+        );
 
         return services;
     }
@@ -69,23 +76,26 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
 
         // Configure Octokit.NET
-        services.AddScoped<IGitHubClient>(provider =>
-        {
-            var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
-            var httpContext = httpContextAccessor.HttpContext;
+        services.AddScoped<IGitHubClient>
+        (
+            provider =>
+            {
+                var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+                var httpContext = httpContextAccessor.HttpContext;
 
-            var client = new GitHubClient(new ProductHeaderValue("GitActDashNet", "1.0"));
+                var client = new GitHubClient(new ProductHeaderValue("GitActDashNet", "1.0"));
 
-            if (httpContext == null)
+                if (httpContext == null)
+                    return client;
+
+                var accessToken = httpContext.GetTokenAsync("access_token").GetAwaiter().GetResult();
+
+                if (!string.IsNullOrEmpty(accessToken))
+                    client.Credentials = new Credentials(accessToken);
+
                 return client;
-
-            var accessToken = httpContext.GetTokenAsync("access_token").GetAwaiter().GetResult();
-
-            if (!string.IsNullOrEmpty(accessToken))
-                client.Credentials = new Credentials(accessToken);
-
-            return client;
-        });
+            }
+        );
 
         // Register application services
         services.AddScoped<GitHubService>();

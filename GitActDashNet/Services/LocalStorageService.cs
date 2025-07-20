@@ -1,5 +1,4 @@
 using GitActDashNet.Utils;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Text.Json;
 
@@ -15,6 +14,12 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     private const string REMOVE_ITEM_FUNCTION = "localStorage.removeItem";
     private const string CLEAR_FUNCTION = "localStorage.clear";
 
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false // LocalStorage typically doesn't need indented JSON
+    };
+
     /// <summary>
     /// Sets a value in localStorage.
     /// </summary>
@@ -25,10 +30,11 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     public async Task<OperationResult> SetItemAsync(string key, string value, CancellationToken cancellationToken = default)
     {
         using var _ = logger.ForServiceOperation(nameof(LocalStorageService), nameof(SetItemAsync));
-        
+
         if (string.IsNullOrWhiteSpace(key))
         {
             logger.LogWarning("Attempted to set localStorage item with null or empty key");
+
             return OperationResult.Failure("Key cannot be null or empty.");
         }
 
@@ -43,16 +49,19 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
         catch (JSException ex)
         {
             logger.LogError(ex, "JavaScript error while setting localStorage item with key: {Key}", key);
+
             return OperationResult.Failure($"JavaScript error while setting localStorage item '{key}': {ex.Message}");
         }
         catch (TaskCanceledException)
         {
             logger.LogWarning("Operation was cancelled while setting localStorage item with key: {Key}", key);
+
             return OperationResult.Failure($"Operation was cancelled while setting localStorage item '{key}'.");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unexpected error while setting localStorage item with key: {Key}", key);
+
             return OperationResult.Failure($"Unexpected error while setting localStorage item '{key}': {ex.Message}");
         }
     }
@@ -69,10 +78,11 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
     {
         try
         {
-            var json = JsonSerializer.Serialize(value, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var json = JsonSerializer.Serialize
+            (
+                value,
+                _jsonOptions
+            );
 
             return await SetItemAsync(key, json, cancellationToken).ConfigureAwait(false);
         }
@@ -132,14 +142,15 @@ public sealed class LocalStorageService(IJSRuntime jsRuntime, ILogger<LocalStora
             return OperationResult<T?>.Failure(jsonResult.ErrorMessage);
 
         if (jsonResult.Value is null)
-            return OperationResult<T?>.Success(default(T));
+            return OperationResult<T?>.Success(default);
 
         try
         {
-            var value = JsonSerializer.Deserialize<T>(jsonResult.Value, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var value = JsonSerializer.Deserialize<T>
+            (
+                jsonResult.Value,
+                _jsonOptions
+            );
 
             return OperationResult<T?>.Success(value);
         }
