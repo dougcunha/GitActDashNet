@@ -36,17 +36,17 @@
             {
                 while (true)
                 {
-                    await Task.Delay(100, _cancellationTokenSource.Token); // Check every 100ms
                     try
                     {
+                        await Task.Delay(100, _cancellationTokenSource.Token); // Check every 100ms
                         var currentState = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.getSidebarState");
 
-                        if (currentState != _isCollapsed)
-                        {
-                            _isCollapsed = currentState;
+                        if (currentState == _isCollapsed)
+                            continue;
 
-                            await InvokeAsync(async () => await UpdateToggleButton());
-                        }
+                        _isCollapsed = currentState;
+
+                        await InvokeAsync(async () => await UpdateToggleButton());
                     }
                     catch
                     {
