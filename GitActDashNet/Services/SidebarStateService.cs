@@ -1,36 +1,35 @@
 namespace GitActDashNet.Services;
 
-public class SidebarStateService
+public sealed class SidebarStateService
 {
-    private bool _isCollapsed = false;
-    private bool _isInitialized = false;
-    
+    private bool _isInitialized;
+
     public event Action? OnStateChanged;
-    
-    public bool IsCollapsed => _isCollapsed;
-    
+
+    public bool IsCollapsed { get; private set; }
+
     public void ToggleSidebar()
     {
-        _isCollapsed = !_isCollapsed;
+        IsCollapsed = !IsCollapsed;
         OnStateChanged?.Invoke();
     }
-    
+
     public void SetSidebarState(bool collapsed)
     {
-        if (_isCollapsed != collapsed)
-        {
-            _isCollapsed = collapsed;
-            OnStateChanged?.Invoke();
-        }
+        if (IsCollapsed == collapsed)
+            return;
+
+        IsCollapsed = collapsed;
+        OnStateChanged?.Invoke();
     }
-    
+
     public void InitializeFromClient(bool collapsed)
     {
-        if (!_isInitialized)
-        {
-            _isCollapsed = collapsed;
-            _isInitialized = true;
-            OnStateChanged?.Invoke();
-        }
+        if (_isInitialized)
+            return;
+
+        IsCollapsed = collapsed;
+        _isInitialized = true;
+        OnStateChanged?.Invoke();
     }
 }

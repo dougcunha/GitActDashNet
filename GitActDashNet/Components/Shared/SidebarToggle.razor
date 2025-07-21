@@ -1,7 +1,8 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
+@implements IDisposable
 
-<button class="btn btn-outline-secondary sidebar-toggle-btn" 
+<button class="btn btn-outline-secondary sidebar-toggle-btn"
         @onclick="ToggleSidebar"
         id="sidebar-toggle-btn"
         title="Toggle Sidebar (Ctrl+B)">
@@ -15,30 +16,35 @@
 </button>
 
 @code {
-    [Parameter] public bool ShowText { get; set; } = false;
-    
-    private bool _isCollapsed = false;
+    [Parameter] public bool ShowText { get; set; }
+
+    private bool _isCollapsed;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            // Initialize from localStorage and setup periodic check for external changes
-            _isCollapsed = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.initializeSidebar");
-            await UpdateToggleButton();
-            
-            // Setup periodic check for state changes from keyboard shortcuts
-            _ = Task.Run(async () =>
+        if (!firstRender)
+            return;
+
+        _isCollapsed = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.initializeSidebar");
+        await UpdateToggleButton();
+
+        // Setup periodic check for state changes from keyboard shortcuts
+        _ = Task.Run
+        (
+            async () =>
             {
                 while (true)
                 {
-                    await Task.Delay(100); // Check every 100ms
+                    await Task.Delay(100, _cancellationTokenSource.Token); // Check every 100ms
                     try
                     {
                         var currentState = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.sidebar.getSidebarState");
+
                         if (currentState != _isCollapsed)
                         {
                             _isCollapsed = currentState;
+
                             await InvokeAsync(async () => await UpdateToggleButton());
                         }
                     }
@@ -48,8 +54,9 @@
                         break;
                     }
                 }
-            });
-        }
+            },
+            cancellationToken: _cancellationTokenSource.Token
+        );
     }
 
     private async Task ToggleSidebar()
@@ -66,10 +73,10 @@
         var buttonText = _isCollapsed ? "Show Sidebar" : "Hide Sidebar";
 
         await JSRuntime.InvokeVoidAsync("eval", $@"
-            const icon = document.getElementById('sidebar-toggle-icon');
-            const text = document.getElementById('sidebar-toggle-text');
-            const button = document.getElementById('sidebar-toggle-btn');
-            
+        const icon = document.getElementById('sidebar-toggle-icon');
+        const text = document.getElementById('sidebar-toggle-text');
+        const button = document.getElementById('sidebar-toggle-btn');
+
             if (icon) {{
                 icon.className = 'bi {iconClass}';
             }}
@@ -81,4 +88,12 @@
             }}
         ");
     }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+    }
+
 }

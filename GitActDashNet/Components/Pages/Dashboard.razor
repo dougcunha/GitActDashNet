@@ -12,7 +12,7 @@
         <div class="d-flex align-items-center">
             <!-- Sidebar Toggle -->
             <SidebarToggle />
-            
+
             <div class="ms-3">
                 <h1 class="h3 mb-0">
                     <i class="bi bi-speedometer2 me-2"></i>
@@ -71,19 +71,17 @@
     }
     else
     {
-        <!-- Repository Columns -->
-        <div class="repository-grid">
-            <div class="row g-3">
-                @foreach (var repositoryData in _repositoryWorkflows)
-                {
-                    <div class="col-lg-4 col-md-6 col-12">
-                        <RepositoryColumn Repository="@repositoryData.Repository"
-                            WorkflowsWithRuns="@repositoryData.WorkflowsWithRuns"
-                            IsLoading="@repositoryData.IsLoading"
-                            ErrorMessage="@repositoryData.ErrorMessage" />
-                    </div>
-                }
-            </div>
+        <!-- Repository Columns with Responsive Grid -->
+        <div class="repository-grid-responsive">
+            @foreach (var repositoryData in _repositoryWorkflows)
+            {
+                <div class="repository-card-container">
+                    <RepositoryColumn Repository="@repositoryData.Repository"
+                        WorkflowsWithRuns="@repositoryData.WorkflowsWithRuns"
+                        IsLoading="@repositoryData.IsLoading"
+                        ErrorMessage="@repositoryData.ErrorMessage" />
+                </div>
+            }
         </div>
     }
 </div>
@@ -157,8 +155,15 @@
             {
                 var result = await GitHubService.GetWorkflowsWithLatestRunsAsync(repoData.Repository).ConfigureAwait(false);
 
-                Logger.LogInformation("Workflow load result for {RepositoryName}: Success={IsSuccess}, Count={Count}",
-                    repoData.Repository.Name, result.IsSuccess, result.IsSuccess ? result.Value?.Count : 0);
+                Logger.LogInformation
+                (
+                    "Workflow load result for {RepositoryName}: Success={IsSuccess}, Count={Count}",
+                    repoData.Repository.Name,
+                    result.IsSuccess,
+                    result.IsSuccess
+                        ? result.Value?.Count
+                        : 0
+                );
 
                 await InvokeAsync(() =>
                 {

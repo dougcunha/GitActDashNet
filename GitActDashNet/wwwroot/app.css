@@ -78,9 +78,10 @@ kbd {
 
 /* GitActDash Custom Styles */
 
-/* Dashboard Styles */
+/* Dashboard Styles - Ultra-wide screen optimized */
 .dashboard-container {
-    max-width: 1400px;
+    /* Remove max-width limit to utilize full screen width */
+    width: 100%;
     margin: 0 auto;
     padding: 1rem;
     transition: all 0.3s ease-in-out;
@@ -88,17 +89,132 @@ kbd {
 
 /* Full-screen dashboard when sidebar is collapsed */
 .page.sidebar-collapsed .dashboard-container {
-    max-width: none;
-    margin: 0;
     padding: 1rem 2rem;
 }
 
+/* New responsive grid layout for repository cards */
+.repository-grid-responsive {
+    display: grid;
+    gap: 1rem;
+    min-height: 400px;
+    transition: all 0.3s ease-in-out;
+    
+    /* Mobile first - 1 column */
+    grid-template-columns: 1fr;
+}
+
+/* Tablet - 2 columns */
+@media (min-width: 768px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop - 3 columns */
+@media (min-width: 992px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Large desktop - 4 columns */
+@media (min-width: 1400px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Ultra-wide screens - 5 columns */
+@media (min-width: 1800px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Super ultra-wide screens - 6 columns */
+@media (min-width: 2200px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+/* Extreme ultra-wide screens - 7+ columns */
+@media (min-width: 2600px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
+
+@media (min-width: 3000px) {
+    .repository-grid-responsive {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+/* When sidebar is collapsed, add extra column capacity */
+.page.sidebar-collapsed .repository-grid-responsive {
+    /* Add more columns when sidebar is hidden for better space utilization */
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* Enhanced breakpoints when sidebar is collapsed */
+@media (min-width: 768px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1600px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+@media (min-width: 2000px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (min-width: 2400px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
+
+@media (min-width: 2800px) {
+    .page.sidebar-collapsed .repository-grid-responsive {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+/* Repository card container for proper sizing */
+.repository-card-container {
+    min-width: 300px;
+    max-width: 400px;
+    width: 100%;
+    justify-self: center;
+}
+
+/* Ensure cards maintain proper aspect ratio */
+.repository-card-container .card {
+    height: 100%;
+    min-height: 300px;
+}
+
+/* Legacy grid styles for backward compatibility */
 .repository-grid {
     min-height: 400px;
     transition: all 0.3s ease-in-out;
 }
 
-/* Improved repository grid layout when sidebar is collapsed */
+/* Improved repository grid layout when sidebar is collapsed - Legacy support */
 .page.sidebar-collapsed .repository-grid .row {
     margin: 0 -0.75rem;
 }
@@ -176,11 +292,26 @@ kbd {
     .page.sidebar-collapsed .repository-grid .col-lg-4 {
         width: 50%; /* 2 columns on mobile when sidebar collapsed */
     }
+    
+    /* Mobile responsive for new grid */
+    .repository-grid-responsive {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .repository-card-container {
+        min-width: auto;
+        max-width: none;
+    }
 }
 
 @media (max-width: 576px) {
     .page.sidebar-collapsed .repository-grid .col-lg-4 {
         width: 100%; /* 1 column on very small screens */
+    }
+    
+    .dashboard-container {
+        padding: 0.5rem;
     }
 }
 
@@ -380,21 +511,6 @@ kbd {
 .refresh-controls .btn:disabled .bi-arrow-clockwise,
 .refresh-controls .refreshing .bi-arrow-clockwise {
     animation: spin 2s linear infinite;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .dashboard-container {
-        padding: 0.5rem;
-    }
-
-    .repository-column .card {
-        min-height: 200px;
-    }
-
-    .offcanvas-body {
-        padding: 1rem;
-    }
 }
 
 /* Dark Mode Enhancements */

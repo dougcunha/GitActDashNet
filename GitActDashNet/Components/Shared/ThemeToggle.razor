@@ -12,9 +12,9 @@
 </button>
 
 @code {
-    [Parameter] public bool ShowText { get; set; } = false;
+    [Parameter] public bool ShowText { get; set; }
 
-    private bool isDarkMode = false;
+    private bool isDarkMode;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

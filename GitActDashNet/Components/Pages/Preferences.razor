@@ -181,11 +181,11 @@
 </div>
 
 @code {
-    private bool _autoRefreshEnabled = false;
+    private bool _autoRefreshEnabled;
     private int _defaultRepoCount = 5;
     private int _refreshInterval = 300;
-    private bool _showFailedOnly = false;
-    private bool _groupByStatus = false;
+    private bool _showFailedOnly;
+    private bool _groupByStatus;
 
     protected override async Task OnInitializedAsync()
     {
