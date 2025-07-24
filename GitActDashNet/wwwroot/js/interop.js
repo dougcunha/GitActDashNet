@@ -73,38 +73,64 @@ window.gitActDashInterop = {
         
         enterFullscreen: function (element) {
             if (element.requestFullscreen) {
-                element.requestFullscreen();
+                return element.requestFullscreen();
             } else if (element.webkitRequestFullscreen) {
-                element.webkitRequestFullscreen();
+                return element.webkitRequestFullscreen();
             } else if (element.mozRequestFullScreen) {
-                element.mozRequestFullScreen();
+                return element.mozRequestFullScreen();
             } else if (element.msRequestFullscreen) {
-                element.msRequestFullscreen();
+                return element.msRequestFullscreen();
             }
+            return Promise.resolve();
         },
         
         exitFullscreen: function () {
             if (document.exitFullscreen) {
-                document.exitFullscreen();
+                return document.exitFullscreen();
             } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
+                return document.webkitExitFullscreen();
             } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
+                return document.mozCancelFullScreen();
             } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
+                return document.msExitFullscreen();
             }
+            return Promise.resolve();
         },
         
-        toggleFullscreen: function (elementId) {
+        toggleFullscreen: async function (elementId) {
             const element = elementId ? document.getElementById(elementId) : document.documentElement;
             
             if (this.isFullscreen()) {
-                this.exitFullscreen();
+                await this.exitFullscreen();
                 return false;
             } else {
-                this.enterFullscreen(element);
+                await this.enterFullscreen(element);
                 return true;
             }
+        },
+
+        addFullscreenListener: function (dotNetReference, methodName) {
+            const handler = () => {
+                try {
+                    dotNetReference.invokeMethodAsync(methodName);
+                } catch (error) {
+                    console.warn('Failed to invoke fullscreen change handler:', error);
+                }
+            };
+
+            document.addEventListener('fullscreenchange', handler);
+            document.addEventListener('webkitfullscreenchange', handler);
+            document.addEventListener('mozfullscreenchange', handler);
+            document.addEventListener('MSFullscreenChange', handler);
+
+            return {
+                dispose: () => {
+                    document.removeEventListener('fullscreenchange', handler);
+                    document.removeEventListener('webkitfullscreenchange', handler);
+                    document.removeEventListener('mozfullscreenchange', handler);
+                    document.removeEventListener('MSFullscreenChange', handler);
+                }
+            };
         }
     },
 
@@ -157,6 +183,12 @@ function setupKeyboardShortcuts() {
         if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'D') {
             event.preventDefault();
             window.gitActDashInterop.theme.toggleTheme();
+        }
+
+        // F11 to toggle fullscreen
+        if (event.key === 'F11') {
+            event.preventDefault();
+            window.gitActDashInterop.fullscreen.toggleFullscreen();
         }
     });
 }

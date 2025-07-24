@@ -1,0 +1,90 @@
+@inject IJSRuntime JSRuntime
+@inject ILogger<FullscreenToggle> Logger
+@implements IAsyncDisposable
+
+<button class="btn btn-outline-secondary"
+        @onclick="ToggleFullscreen"
+        title="@(isFullscreen ? "Exit fullscreen mode (F11)" : "Enter fullscreen mode (F11)")">
+    <i class="bi @(isFullscreen ? "bi-fullscreen-exit" : "bi-arrows-fullscreen")"></i>
+    @if (ShowText)
+    {
+        <span class="ms-2">@(isFullscreen ? "Windowed" : "Fullscreen")</span>
+    }
+</button>
+
+@code {
+    [Parameter] public bool ShowText { get; set; }
+
+    private bool isFullscreen;
+    private IJSObjectReference? _fullscreenListener;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Check current fullscreen state
+                isFullscreen = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.fullscreen.isFullscreen");
+                StateHasChanged();
+
+                // Setup fullscreen change listener
+                var dotNetRef = DotNetObjectReference.Create(this);
+                _fullscreenListener = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "gitActDashInterop.fullscreen.addFullscreenListener", 
+                    dotNetRef, "OnFullscreenChanged");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to initialize fullscreen toggle");
+                isFullscreen = false;
+            }
+        }
+    }
+
+    private async Task ToggleFullscreen()
+    {
+        try
+        {
+            var newState = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.fullscreen.toggleFullscreen");
+            isFullscreen = newState;
+
+            Logger.LogInformation("Fullscreen toggled to: {IsFullscreen}", newState);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling fullscreen mode");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnFullscreenChanged()
+    {
+        try
+        {
+            isFullscreen = await JSRuntime.InvokeAsync<bool>("gitActDashInterop.fullscreen.isFullscreen");
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error handling fullscreen change event");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_fullscreenListener is not null)
+            {
+                await _fullscreenListener.InvokeVoidAsync("dispose");
+                await _fullscreenListener.DisposeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error disposing fullscreen listener");
+        }
+    }
+}
